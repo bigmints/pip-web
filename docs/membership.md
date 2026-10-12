@@ -23,7 +23,7 @@ got?* and *Which hand wins?* — every written guide, the odds calculator, and s
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
 Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, eight more
 drill kinds (including the practice packs *Open or fold*, *Calling the river*, *Bet or check* and *Shove or fold*) plus the play-it-out mode, the across-sessions play report, the session review,
-spectating after you bust, **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), and the members' shelf. Not built: multiplayer.
+spectating after you bust, **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), the members' shelf, and **multiplayer**: opening a private room for friends (camera and mic included) and quick match. Joining a member's room with a code needs only a free account (see below and [multiplayer.md](./multiplayer.md)).
 
 **The free half of the drills is where a beginner learns to read a hand, and the paid half
 is where they learn to price one** (Will, 2026-09-21). That is the line the two sides fall
@@ -39,11 +39,15 @@ of the seven play, how many cards win it, what the pot is charging — is the me
    `tests/sitDown.test.ts` fails the build if one does.
 2. **Nothing you can buy changes a hand** — not the cards, the odds, what you are shown, or
    a rebuy. This one holds with no asterisk, in every case.
-3. **It is not pay-to-win**, which means buying an advantage over another player. Pip is
-   single-player with no leaderboard and nobody to overtake. Member rooms *are* ranked and a
-   member does reach a rank sooner for having more tables to win at — that is pace through
-   single-player content. ⚠️ **This argument has to be made again the day multiplayer
-   ships.** See `docs/brand.md` principle 1 and `cto/drafts/build-multiplayer.md`.
+3. **It is not pay-to-win**, which means buying an advantage over another player. There
+   is no leaderboard and nobody to overtake. Member rooms *are* ranked and a member does
+   reach a rank sooner for having more tables to win at — that is pace through
+   single-player content. **Made again for multiplayer (2026-10-11):** nobody at a table
+   can see anybody else's Roll or rank, so a member's rank is still private pace;
+   everyone at a table sits with the same stack, sees the same things and has the same
+   clock; and the membership changes nothing once the cards are dealt. A private room's
+   host is the member only in that they could open it, and quick match is members against
+   members and the cast. See `docs/brand.md` principle 1 and [multiplayer.md](./multiplayer.md).
 4. **Nothing free is metered, and nothing paid is sliced.** A thing is the membership's or it
    is free. The one third shape is **one whole member game a day** for a non-member (below):
    a whole table, never part of one, never a trial that ends mid-session,
@@ -99,6 +103,22 @@ sentence would be false if it stayed. It has been narrowed rather than quietly e
 narrowing it further is not a thing this document can authorise — that would need a player
 to be told before it happened, not after.
 
+## Multiplayer: the host pays, friends join free (2026-10-11)
+
+**Opening a private room and quick match are the membership's. Joining a member's room with
+its code needs a free account and nothing else** (Will, 2026-10-11). A member's game should
+never be short of players because their friends have not paid, and every friend sat at a
+member's table sees what the membership is.
+
+- **The gate is on the room server**, not the browser (`rooms/src/auth.ts`): creating a room
+  and joining a queue read the `memberships` row with the service role. `useEntitlement()`
+  only decides which buttons the hub shows.
+- **It is not in the daily free game.** A room is not one table you sit down to on your own;
+  `taste.ts` is unchanged and knows nothing about rooms.
+- **Only for sale where it exists.** The `multiplayer` feature is `needs: 'rooms'`:
+  `sellableFeatures()` leaves it out of any build without `NEXT_PUBLIC_ROOMS_URL`, so a page
+  never sells tables the build cannot reach.
+
 ## One free member game a day (2026-10-07)
 
 A non-member gets **one member game per UTC day**: a seat at any one poker table on the side
@@ -139,8 +159,37 @@ and the Terms section is four numbers that agree until one of them is edited.
 an own-row-only policy, so a `member: true` in the profile blob would be settable by editing
 localStorage — not a weak lock, no lock. `supabase/migrations/…_memberships.sql` grants
 `select` on your own row and **nothing else**; the Stripe webhook writes it with the service
-role. `tests/entitlement.test.ts` fails the build if a mutation against that table ever
+role (and `revenuecat-webhook` for the stores). `tests/entitlement.test.ts` fails the build if a mutation against that table ever
 appears in the client, or if the migration grows an insert/update/delete policy.
+
+## Bought in the app (2026-10-09)
+
+The iOS and Android apps (`mobile/`, EXPO-PLAN.md) can't send anyone to Stripe: Apple and
+Google require their own billing for a membership bought in the app, and reject a link out
+to any other. So there are two ways in, and **one row**.
+
+| | Web | App |
+|---|---|---|
+| Pays through | Stripe Checkout | The App Store / Google Play, via RevenueCat |
+| Written by | `stripe-webhook` | `revenuecat-webhook` |
+| `memberships.source` | `stripe` | `app_store` / `play_store` |
+| Managed and cancelled in | The Stripe portal (Settings → Manage) | The store's subscription settings |
+
+- **The client didn't change its idea of a member.** `useEntitlement()` reads the same row
+  either way. `source` only decides where Manage points, and the entitlement store reads
+  around it on a database from before the column (`42703`), so a missing migration can't
+  cost anyone their membership.
+- **The RevenueCat app user id is the Supabase user id.** Buying in the app needs a signed-in
+  player, same as the web.
+- **Neither webhook overwrites a live membership from the other side** with one that isn't
+  live.
+- **In the app**, nothing leads to Stripe: the membership page shows the store's price, a
+  Join button, Restore purchases and the renewal terms Apple asks for; Settings → Manage
+  opens the store; a web member sees their status and no Manage. An app build without the
+  store set up shows "Joining in the app is coming soon" (`appSupports('purchase')`).
+- **Deleting the account doesn't cancel a store membership** (only the player can), so the
+  delete confirmation says so and links to the store.
+- Refunds for store memberships happen in the store, never in Stripe.
 
 ## Lessons with Webb (2026-09-23)
 
@@ -336,9 +385,9 @@ over them counts tabs rather than clicks:
 | Event | Sent when | Where |
 |---|---|---|
 | `membership-viewed` | `/membership` renders | `MembershipScreen` |
-| `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect | `lib/membership/billing.ts` |
-| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL | `Join` in `MembershipScreen` |
-| `membership-active` | `awaitMembership()` sees the row the webhook wrote | `Join` in `MembershipScreen` |
+| `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect; in the store app, just before the store's sheet opens | `lib/membership/billing.ts`, `lib/membership/store.ts` |
+| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL; in the store app, the store reports the payment | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
+| `membership-active` | `awaitMembership()` sees the row a webhook wrote | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
 
 Two more sit beside the four, for the account step a signed-out tab meets before checkout:
 `membership-viewed-signed-out` (the page settled on signed out, not on the way back from Stripe)

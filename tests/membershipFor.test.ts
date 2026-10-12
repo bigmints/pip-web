@@ -1,8 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
 import {
+  BET_PACK_ID,
   DRILL_KINDS,
+  OPEN_PACK_ID,
   SAMPLED_DRILLS,
+  SHOVE_PACK_ID,
   drillKind,
   membershipForDrill,
   tappedDrill,
@@ -10,6 +13,7 @@ import {
 import {
   featureForDrill,
   featureForFamily,
+  MEMBERSHIP_FEATURES,
   membershipFor,
   sellableFeatures,
   tappedFeature,
@@ -26,7 +30,9 @@ import {
   tappedFamily,
   venueById,
 } from '@/config/venues'
+import { LESSONS, lessonQuestions, membershipForLesson, tappedLesson } from '@/config/lessons'
 import { kindFloor } from '@/lib/drills/standing'
+import { SHOVE_WHERE } from '@/lib/drills/shoveOrFold'
 import { nextDrill } from '@/lib/drills'
 import { drillSample } from '@/lib/drills/sample'
 
@@ -39,7 +45,10 @@ import { drillSample } from '@/lib/drills/sample'
 // `/membership` link, because a guard that lists the surfaces it knows about
 // protects those surfaces and nothing added after them.
 
-const SHIPPED = new Set(sellableFeatures().map((f) => f.id))
+// Built features, whatever this build has switched on: multiplayer's call
+// sites name it whether or not the build points at a room server, and the page
+// falls back to its plain self when it does not.
+const SHIPPED = new Set(MEMBERSHIP_FEATURES.filter((f) => f.shipped).map((f) => f.id))
 
 /** Every `.ts`/`.tsx` under a directory, comments stripped: a note is not a link. */
 function sources(dir: string): { path: string; code: string }[] {
@@ -84,7 +93,8 @@ test('every locked surface says what was tapped', (t) => {
 
 test('every literal id a call site sends is a shipped feature', (t) => {
   let seen = 0
-  for (const { path, code } of sources('src/components')) {
+  // `src/app` too: a post's link to the game it is about is a call site.
+  for (const { path, code } of [...sources('src/components'), ...sources('src/app')]) {
     for (const [, id] of code.matchAll(/membershipFor\(\s*'([^']+)'\s*\)/g)) {
       seen++
       t.true(SHIPPED.has(id), `${path} sends ?for=${id}, which is not a shipped feature`)
@@ -129,6 +139,33 @@ test('a tap on a paid drill names its kind, and the page reads it back', (t) => 
   }
 })
 
+// "Lessons with Webb" covers eight lessons, so a tap on one names which, the
+// same as a drill. The two places a lesson is locked must send the name; the
+// welcome flow's link is not a tap on a lesson and keeps the plain feature.
+test('a tap on a paid lesson names it, and the page reads it back', (t) => {
+  const search = (href: string) => new URL(href, 'https://playpip.io').search
+  const paid = LESSONS.filter((lesson) => lesson.membersOnly)
+  t.true(paid.length >= 8, `only ${paid.length} paid lessons`)
+  for (const lesson of paid) {
+    const href = membershipForLesson(lesson.id)
+    t.is(tappedFeature(search(href))?.id, 'lessons', lesson.id)
+    t.is(tappedLesson(search(href))?.id, lesson.id, lesson.id)
+    t.true(lessonQuestions(lesson) > 0, `${lesson.id} asks nothing, so the page would say 0 times`)
+    if (lesson.practice) t.notThrows(() => drillKind(lesson.practice as string), lesson.id)
+  }
+  t.is(tappedLesson('?for=drills&lesson=position'), null)
+  t.is(tappedLesson('?for=lessons&lesson=nonsense'), null)
+  t.is(tappedLesson('?for=lessons'), null)
+  for (const path of [
+    'src/components/learn/CourseShelf.tsx',
+    'src/components/lessons/LessonScreen.tsx',
+  ]) {
+    const code = sources(path.slice(0, path.lastIndexOf('/'))).find((f) => f.path === path)?.code
+    t.truthy(code, path)
+    t.regex(code ?? '', /membershipForLesson\(/, `${path} sends a lesson tap without its name`)
+  }
+})
+
 // The spot dealt under a tapped drill is the drill's own, the same on every
 // visit, and has what the felt draws: a board of the kind's size and a holding.
 test('a sampled drill deals one fixed spot from its own generator', (t) => {
@@ -144,6 +181,36 @@ test('a sampled drill deals one fixed spot from its own generator', (t) => {
     const holdings =
       (spot.hands?.length ?? 0) + spot.choices.filter((c) => c.cards.length > 1).length
     t.true(holdings > 0, `${id}: nothing for the felt to draw`)
+  }
+})
+
+// The three packs play on a table, so their spot is drawn with the pack's own
+// seat, stack or betting line. A spot missing what its table needs would draw
+// a seat with no words, or a bet of nothing.
+test('a sampled pack has what its table draws', (t) => {
+  const open = drillSample(OPEN_PACK_ID)
+  // OpenPack's `OPEN_WHERE` has a line for these four seats and no other.
+  t.true(['utg', 'mp', 'co', 'btn'].includes(open.seat ?? ''), `open-or-fold seat ${open.seat}`)
+  t.is(open.hands?.[0].cards.length, 2)
+
+  const shove = drillSample(SHOVE_PACK_ID)
+  t.truthy(shove.seat && shove.seat in SHOVE_WHERE, `shove-or-fold seat ${shove.seat}`)
+  t.true((shove.shove?.stack ?? 0) > 0)
+  t.is(shove.hands?.[0].cards.length, 2)
+
+  const bet = drillSample(BET_PACK_ID)
+  t.true((bet.calling?.bet ?? 0) > 0 && (bet.calling?.pot ?? 0) > 0)
+  t.is(bet.line?.at(-1)?.street, 'river')
+  t.is(bet.hands?.[0].cards.length, 2)
+})
+
+// Every paid kind a tap lands on "Every drill" for gets a spot, so no tap is
+// answered with a name alone.
+test('every paid drill under "Every drill" is sampled', (t) => {
+  for (const kind of DRILL_KINDS) {
+    if (kind.membersOnly && featureForDrill(kind.id) === 'drills') {
+      t.true(SAMPLED_DRILLS.includes(kind.id), `${kind.id} is named but not dealt`)
+    }
   }
 })
 
@@ -220,8 +287,12 @@ test('the page reads back what the tap sent, and nothing else', (t) => {
   t.is(tappedFeature(search(membershipFor('lessons')))?.title, 'Lessons with Webb')
   t.is(tappedFeature(''), null)
   t.is(tappedFeature('?for=nonsense'), null)
-  // Not shipped, so never advertised, even by somebody typing the URL.
-  t.is(tappedFeature('?for=multiplayer'), null)
+  // Shipped only in a build with a room server, so never advertised without
+  // one, even by somebody typing the URL.
+  t.is(
+    tappedFeature('?for=multiplayer')?.id ?? null,
+    process.env.NEXT_PUBLIC_ROOMS_URL ? 'multiplayer' : null,
+  )
 })
 
 // Back from checkout, a new member gets a link to the place they tapped. A

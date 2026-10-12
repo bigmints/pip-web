@@ -1,6 +1,6 @@
 {
   "name": "clean-poker",
-  "version": "1.26.9",
+  "version": "1.27.12",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
@@ -16,12 +16,14 @@
     "test:all": "./scripts/test.sh",
     "test:ava": "ava",
     "test:format": "biome check --no-errors-on-unmatched .",
-    "test:types": "tsc --noEmit",
+    "test:types": "tsc --noEmit && tsc --noEmit -p rooms",
     "test:lint": "biome lint .",
     "test:knip": "knip",
     "test:audit": "pnpm audit --audit-level=high",
     "test:sync-config": "node scripts/assert-sync-config.mjs out",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p rooms",
+    "rooms:dev": "wrangler dev -c rooms/wrangler.jsonc",
+    "rooms:deploy": "wrangler deploy -c rooms/wrangler.jsonc",
     "sim": "tsx scripts/sim.ts",
     "spot-sim": "tsx scripts/spot-sim.ts",
     "supabase:db:push": "supabase db push",
@@ -35,7 +37,8 @@
     "exploit-sim": "tsx scripts/exploit-sim.ts",
     "ai-stats": "tsx scripts/ai-stats.ts",
     "win-read": "tsx scripts/win-read.ts",
-    "cash-sim": "tsx scripts/cash-sim.ts"
+    "cash-sim": "tsx scripts/cash-sim.ts",
+    "build:ios": "cd mobile && npx eas-cli@latest build --platform ios --profile production --auto-submit"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -59,6 +62,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
+    "@cloudflare/workers-types": "^5.20261010.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
@@ -69,6 +73,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "turndown": "^7.2.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.149.0"
   }
 }

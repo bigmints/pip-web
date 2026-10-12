@@ -55,6 +55,7 @@ import {
 } from '@/lib/poker/ai/memory'
 import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
+import { heroEquity } from '@/lib/poker/heroEquity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
 import {
   dailyAiRng as dailyAiRngFor,
@@ -970,7 +971,10 @@ export const useGame = create<GameState>((set, get) => {
         status: 'busted',
         place,
         aiThinkingId: null,
-        message: null,
+        // Kept rather than cleared: the end card can be set aside to see the
+        // hand that ended it, and this is the line that says who won it with
+        // what (pip-web#198).
+        message: describeResult(hand),
         recap: makeRecap(venue, place, bestFinishBefore),
       })
       return
@@ -994,7 +998,7 @@ export const useGame = create<GameState>((set, get) => {
         status: 'won',
         place: 1,
         aiThinkingId: null,
-        message: null,
+        message: describeResult(hand),
         newAwards,
         lastBounty: bountyWon,
         recap: makeRecap(venue, 1, bestFinishBefore),
@@ -1076,7 +1080,7 @@ export const useGame = create<GameState>((set, get) => {
         status: 'busted',
         place: null,
         aiThinkingId: null,
-        message: null,
+        message: describeResult(hand),
         newAwards,
         lastBounty: 0,
         talk: null,
@@ -1566,27 +1570,7 @@ function subtractStats(total: SeatStats, part: SeatStats): SeatStats {
 }
 
 function computeHeroEquity(hand: HandState): number | null {
-  const hero = hand.players.find((p) => p.id === HUMAN_ID)
-  if (!hero || hero.hole.length < 2) return null
-  // **No number at all at Five-Card Draw**, which is better than a wrong one.
-  // `estimateEquity` works by running out a board, and a draw hand has none:
-  // asked anyway it deals five community cards onto five hole cards and
-  // evaluates ten, which produces a confident percentage of nothing. The real
-  // answer would have to model what four opponents are about to discard, and
-  // until that exists the odds panel shows an em dash.
-  if (hand.variant === 'draw') return null
-  const opponents = hand.players.filter(
-    (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
-  )
-  if (opponents.length === 0) return 1
-  return estimateEquity({
-    hole: hero.hole,
-    community: hand.community,
-    opponents: opponents.length,
-    opponentSelectivity: opponents.map((p) => opponentSelectivity(hand, p)),
-    iterations: 800,
-    variant: hand.variant,
-  }).equity
+  return heroEquity(hand, HUMAN_ID)
 }
 
 /**

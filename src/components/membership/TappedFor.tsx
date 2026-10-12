@@ -20,7 +20,8 @@
 // sent anywhere.
 //
 // A tap on Calling the river also deals one spot from it (`TappedSpot`), loaded
-// only then, so nobody else's page carries the drill generator.
+// only then, so nobody else's page carries the drill generator. A tap on The
+// Big Pot deals one Omaha showdown (`TappedOmaha`) the same way.
 //
 // A tap on any other paid drill lands on "Every drill", whose blurb lists nine
 // of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
@@ -30,11 +31,15 @@
 // A tap on a twist (Fast, Heads-Up, Bounty, Deep) lands on "Every side table",
 // whose blurb names all four, so it names its family too (`&table=`,
 // `tappedFamily`): the family's own note from the shelf, and its tables.
+//
+// A tap on a locked lesson names the lesson the same way (`&lesson=`,
+// `TappedLesson`), loaded only then, so nobody else's page carries the course.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
-import { type LocalPrice, tappedFeature } from '@/config/membership'
+import { tappedFeature } from '@/config/membership'
 import { familyTableNames, tappedFamily } from '@/config/venues'
+import type { ShownPrice } from '@/lib/membership/store'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
@@ -43,11 +48,19 @@ const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot
   ssr: false,
 })
 
+const TappedOmaha = dynamic(() => import('./TappedOmaha').then((m) => m.TappedOmaha), {
+  ssr: false,
+})
+
 const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.TappedDrillSpot), {
   ssr: false,
 })
 
-export function TappedFor({ price }: { price: LocalPrice }) {
+const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.TappedLesson), {
+  ssr: false,
+})
+
+export function TappedFor({ price }: { price: ShownPrice }) {
   const hydrated = useHydrated()
   const search = hydrated ? window.location.search : ''
   const feature = tappedFeature(search)
@@ -57,6 +70,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
   const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
   const drill = tappedDrill(search)
   const family = tappedFamily(search)
+  const lesson = feature.id === 'lessons' && new URLSearchParams(search).has('lesson')
 
   return (
     <section
@@ -71,6 +85,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
         {feature.id === 'river' && <TappedSpot />}
+        {feature.id === 'omaha' && <TappedOmaha />}
         {drill && (
           <p className="mt-3 leading-relaxed text-muted-foreground">
             You tapped <span className="font-medium text-foreground">{drill.title}</span>.{' '}
@@ -85,6 +100,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
             {new Intl.ListFormat('en-GB').format(familyTableNames(family))}.
           </p>
         )}
+        {lesson && <TappedLesson search={search} />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

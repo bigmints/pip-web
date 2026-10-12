@@ -4,12 +4,14 @@
 // the app with no store release. Set EXPO_PUBLIC_SITE_URL to point it at a dev
 // server on your network instead (e.g. http://192.168.1.20:3000).
 
+import { requireOptionalNativeModule } from 'expo'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef } from 'react'
 import { BackHandler, Linking, Platform, StyleSheet, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { handleMessage, injectedFlag } from './src/bridge'
+import { Offline } from './src/Offline'
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://playpip.io'
 
@@ -27,11 +29,24 @@ const START_URL = `${SITE_URL}/game`
 // doesn't reliably report the insets to CSS.
 const Frame = Platform.OS === 'ios' ? View : SafeAreaView
 
+// iOS: keeps the table's sound on the loudspeaker while the camera or mic is
+// on, rather than the earpiece (modules/pip-speaker). Absent in Expo Go and on
+// Android, where there is nothing to do.
+requireOptionalNativeModule<{ start: () => void }>('PipSpeaker')?.start()
+
 const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
 
 export default function App() {
   const webView = useRef<WebView>(null)
   const canGoBack = useRef(false)
+
+  // Answers go back into the page by id; nativeApp.ts on the web side resolves
+  // the request that is waiting for it.
+  const reply = (id: string, payload: unknown) => {
+    webView.current?.injectJavaScript(
+      `window.__pipAppReply && window.__pipAppReply(${JSON.stringify(id)}, ${JSON.stringify(payload)}); true;`,
+    )
+  }
 
   // Android's back button walks the web view's history, and only leaves the
   // app once there's nothing left to go back to.
@@ -54,9 +69,17 @@ export default function App() {
           style={styles.root}
           originWhitelist={['https://*', 'http://*']}
           injectedJavaScriptBeforeContentLoaded={injectedFlag}
+          // No connection, or the site is down: Pip's own screen with a retry,
+          // never a browser-style error page.
+          renderError={() => <Offline onRetry={() => webView.current?.reload()} />}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
-          onMessage={(e) => handleMessage(e.nativeEvent.data)}
+          onMessage={(e) => {
+            // Only Pip's own pages may ask: a sign-in reply carries a full
+            // session, and a purchase spends the player's money.
+            if (!isOwnSite(e.nativeEvent.url)) return
+            handleMessage(e.nativeEvent.data, reply)
+          }}
           onNavigationStateChange={(nav) => {
             canGoBack.current = nav.canGoBack
           }}
@@ -66,7 +89,17 @@ export default function App() {
           setBuiltInZoomControls={false}
           // Web Audio cues play on a tap, not on load.
           mediaPlaybackRequiresUserAction={false}
+          // Also lets the table's camera and mic video play in place, not full screen.
           allowsInlineMediaPlayback
+          // Camera and mic at a table with friends (iOS 15+). 'grantIfSameHostElseDeny'
+          // grants getUserMedia to the page the web view is showing, so the player
+          // sees one prompt, iOS's own (the usage strings in app.json), and not a
+          // second WebKit "playpip.io wants to use your camera" prompt every
+          // session. The web view only ever shows Pip (off-site links go to the
+          // browser), and a frame from any other host, such as an embed, is denied
+          // outright rather than prompted, so nothing else can ask. Android
+          // needs no prop: the web view asks for the runtime permission itself.
+          mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
           // Off-site links (Stripe, socials) go to the system browser, whether
           // they navigate the page or open a new window.
           onShouldStartLoadWithRequest={(req) => {

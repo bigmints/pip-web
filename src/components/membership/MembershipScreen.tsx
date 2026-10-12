@@ -43,6 +43,7 @@ import { Reveal } from '@/components/Reveal'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
+import { MultiplayerSpotlight } from '@/components/membership/MultiplayerSpotlight'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { DRILL_KINDS } from '@/config/drills'
 import { LESSONS } from '@/config/lessons'
@@ -51,7 +52,6 @@ import {
   type CurrencyCode,
   DAILY_FREE_GAME,
   HOW_TO_CANCEL,
-  type LocalPrice,
   MEMBERSHIP_FEATURES,
   MEMBERSHIP_PRICE_IDS,
   MEMBERSHIP_PRICES,
@@ -76,6 +76,16 @@ import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
 import { useInApp } from '@/lib/useInApp'
+import { appPlatform, appSupports } from '@/lib/nativeApp'
+import {
+  buyInStore,
+  MANAGE_IN_STORE,
+  restoreFromStore,
+  type StoreResult,
+  useMembershipSource,
+  type ShownPrice,
+  useStorePrices,
+} from '@/lib/membership/store'
 import { SHOP_ITEMS } from '@/config/shop'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
 import { formatChips } from '@/lib/useMoney'
@@ -136,8 +146,9 @@ const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
   'god-view': { icon: Eye, tint: '#8F6FE8' },
 }
 
-/** Has its own section rather than a card or a row. */
+/** Have their own sections rather than a card or a row. */
 const SHELF_ID = 'cosmetics'
+const MULTIPLAYER_ID = 'multiplayer'
 
 /** What stays free, said as a list. Rule 1 in docs/membership.md is the long form. */
 const FREE_FOREVER = [
@@ -172,6 +183,9 @@ function useCurrency() {
   return [picked ?? detected, setPicked] as const
 }
 
+/** In the store app, before the store's prices arrive. */
+const STORE_LOADING: ShownPrice = { monthly: '…', annual: '…', monthlyMinor: 0, annualMinor: 0 }
+
 // --- the screen -----------------------------------------------------------------
 
 export function MembershipScreen() {
@@ -180,24 +194,58 @@ export function MembershipScreen() {
     .map((id) => sellable.find((f) => f.id === id))
     .filter((f): f is MembershipFeature => Boolean(f))
   const shelf = sellable.find((f) => f.id === SHELF_ID)
+  const multiplayer = sellable.find((f) => f.id === MULTIPLAYER_ID)
   // Anything shipped that has no card lands in the tools list, so a new
   // feature is on the page the moment it is marked shipped.
-  const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID)
+  const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID && f.id !== MULTIPLAYER_ID)
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
-  const price = MEMBERSHIP_PRICES[currency]
+  // In the store app with purchases on, every price on the page is the store's,
+  // in the player's own App Store currency, and there is no currency picker:
+  // the store decides. Everywhere else it is the website's price in the picked
+  // currency, exactly as before.
+  const app = useInApp()
+  const storeSells = app && appSupports('purchase')
+  const store = useStorePrices(storeSells)
+  const price: ShownPrice = storeSells
+    ? (store ?? STORE_LOADING)
+    : { ...MEMBERSHIP_PRICES[currency], format: (minor) => formatPrice(minor, currency) }
 
   // First step of the funnel. The page view is counted anyway; this one is
   // once per tab, so it lines up with the three steps after it.
   useEffect(() => trackOnce('membership-viewed'), [])
 
+  // A link to a section (`/membership#plans` from the welcome flow) opens on
+  // it, at once: the page scrolls smoothly, and a smooth scroll on arrival can
+  // be cut short as the page settles.
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (id) document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  }, [])
+
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
         <TappedFor price={price} />
-        <Hero price={price} />
+        <Hero price={price} multiplayer={multiplayer !== undefined} />
 
         <div className="mx-auto w-full max-w-6xl px-4 md:px-10">
+          {/* The headline, first after the hero (Will, 2026-10-11): the one
+              thing on the page with other people in it. */}
+          {multiplayer && (
+            <section id="multiplayer" className="scroll-mt-24 pb-16 md:pb-24">
+              <Reveal>
+                <p className="text-sm font-medium text-pip">New · Multiplayer</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-4xl">
+                  Deal your friends in
+                </h2>
+              </Reveal>
+              <div className="mt-6 md:mt-8">
+                <MultiplayerSpotlight feature={multiplayer} />
+              </div>
+            </section>
+          )}
+
           <Stats />
 
           <Section
@@ -234,7 +282,11 @@ export function MembershipScreen() {
             title="One membership, two ways to pay"
             lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table or a lesson first."
           >
-            <Plans price={price} currency={currency} onCurrency={setCurrency} />
+            <Plans
+              price={price}
+              currency={currency}
+              onCurrency={storeSells ? undefined : setCurrency}
+            />
           </Section>
 
           <Section id="free" eyebrow="Free, forever" title="What you already have">
@@ -265,7 +317,7 @@ const FAN = [
   MEMBER_BACKS[3],
 ]
 
-function Hero({ price }: { price: LocalPrice }) {
+function Hero({ price, multiplayer }: { price: ShownPrice; multiplayer: boolean }) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -285,17 +337,34 @@ function Hero({ price }: { price: LocalPrice }) {
             <Star className="size-3 fill-pip text-pip" />
             Pip Membership
           </span>
+          {multiplayer && (
+            <a
+              href="#multiplayer"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary transition hover:bg-primary/25"
+            >
+              New: play with your friends, camera and all
+            </a>
+          )}
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-6xl">
             Get better at poker.{' '}
             <span className="block text-muted-foreground">And see it working.</span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
+            {multiplayer &&
+              'Multiplayer: open a room, send your friends the code, and play with your camera in your seat. '}
             {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
             have played and names what is costing you chips, in big blinds, with the hands it
             happened in. Every session back on the table, hand by hand. Plus the side tables, the
             games that are not Hold’em and the members’ shelf. The core game stays free, for good.
           </p>
-          <p className="mt-5 text-sm tabular-nums text-muted-foreground">
+          {/* In the app the store's prices replace "…" after the first paint.
+              iOS WebKit repainted only the old, narrower line, so the new one
+              came out clipped at both ends: the line spans the column, and a
+              new price is a new element, painted whole. */}
+          <p
+            key={`${price.monthly}|${price.annual}`}
+            className="mt-5 self-stretch text-sm tabular-nums text-muted-foreground"
+          >
             <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}
             <span className="px-1 text-foreground/25">·</span>{' '}
             <span className="font-semibold text-foreground">{price.annual}</span> a year
@@ -623,16 +692,22 @@ const PLAN_ORDER: readonly Plan[] = ['annual', 'monthly']
 
 /** The two plans in one currency. The sums come from minor units, never the display strings. */
 function plansIn(
-  price: LocalPrice,
+  price: ShownPrice,
 ): Record<Plan, { name: string; price: string; per: string; note: string }> {
   const saving = price.monthlyMinor * 12 - price.annualMinor
   const perMonth = Math.round(price.annualMinor / 12)
+  const { format } = price
   return {
     annual: {
       name: 'Yearly',
       price: price.annual,
       per: 'a year',
-      note: `${formatPrice(perMonth, price.currency)} a month, near enough — ${formatPrice(saving, price.currency)} less than paying monthly for twelve months.`,
+      // Left out when the numbers aren't known (an older app build sends only
+      // the store's price labels), rather than worked out from a string.
+      note:
+        format && saving > 0
+          ? `${format(perMonth)} a month, near enough — ${format(saving)} less than paying monthly for twelve months.`
+          : 'One payment a year.',
     },
     monthly: {
       name: 'Monthly',
@@ -693,13 +768,17 @@ function Plans({
   currency,
   onCurrency,
 }: {
-  price: LocalPrice
+  price: ShownPrice
   currency: CurrencyCode
-  onCurrency: (next: CurrencyCode) => void
+  /** Absent in the store app, where the store picks the currency. */
+  onCurrency?: (next: CurrencyCode) => void
 }) {
   const [plan, setPlan] = useState<Plan>('annual')
   const ready = checkoutReady()
   const PLANS = plansIn(price)
+  // In the store app it is paid and cancelled through the store, so the notes
+  // about Stripe's checkout and cancelling from Settings don't apply.
+  const app = useInApp()
 
   const pick = (next: Plan) => {
     if (next === plan) return
@@ -710,10 +789,12 @@ function Plans({
   return (
     <Reveal>
       <div>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">Prices in</p>
-          <CurrencyPicker currency={currency} onCurrency={onCurrency} />
-        </div>
+        {onCurrency && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Prices in</p>
+            <CurrencyPicker currency={currency} onCurrency={onCurrency} />
+          </div>
+        )}
         <div role="radiogroup" aria-label="Billing" className="grid gap-3 sm:grid-cols-2">
           {PLAN_ORDER.map((id) => {
             const p = PLANS[id]
@@ -790,13 +871,21 @@ function Plans({
           )}
 
           <ul className="mt-5 grid gap-x-6 gap-y-2.5 border-t border-foreground/[0.07] pt-5 text-sm text-muted-foreground sm:grid-cols-2">
-            {[
-              'Tax is inside the price: the number here is the number that leaves your bank.',
-              'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
-              'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
-              'You need a free Pip account to join. You never need one to play.',
-              DAILY_FREE_GAME,
-            ].map((line) => (
+            {(app
+              ? [
+                  'Paid through the store, in your own currency, with tax included.',
+                  'Renews until you stop it. Cancel any time in your store’s subscription settings.',
+                  'You need a free Pip account to join. You never need one to play.',
+                  DAILY_FREE_GAME,
+                ]
+              : [
+                  'Tax is inside the price: the number here is the number that leaves your bank.',
+                  'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
+                  'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
+                  'You need a free Pip account to join. You never need one to play.',
+                  DAILY_FREE_GAME,
+                ]
+            ).map((line) => (
               <li key={line} className="flex gap-2.5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pip" />
                 <span>{line}</span>
@@ -867,6 +956,7 @@ function Join({
   const [slow, setSlow] = useState(false)
   const [startNow, setStartNow] = useState(false)
   const app = useInApp()
+  const source = useMembershipSource()
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
@@ -922,33 +1012,47 @@ function Join({
   // Join for the frame before their row arrives. A quiet box instead.
   if (!ready || (signedIn && !checked && !member)) {
     body = <div aria-busy className="h-14 w-full animate-pulse rounded-2xl bg-foreground/[0.05]" />
-  } else if (app) {
-    // The store apps can't send anyone to Stripe: Apple and Google require
-    // their own billing for a membership bought in the app, and reject a link
-    // out to any other. Until in-app purchase exists (EXPO-PLAN.md, phase 2),
-    // the app shows where you stand and nothing to tap.
-    body = member ? (
+  } else if (app && (member || memberStatus === 'past_due' || memberStatus === 'unpaid')) {
+    // In the store app nothing leads to Stripe: Apple and Google reject a link
+    // out to other billing. A membership bought in the app is managed in the
+    // store; one bought on the web is shown, and managed on the web.
+    const manage = source ? MANAGE_IN_STORE[source] : undefined
+    body = (
       <>
-        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
-          <Star className="size-4 fill-pip text-pip" />
-          You’re a member
-        </div>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          {leaving
-            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
-            : `Renews on ${endsOn(periodEnd)}.`}
-        </p>
+        {member ? (
+          <>
+            <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
+              <Star className="size-4 fill-pip text-pip" />
+              You’re a member
+            </div>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              {leaving
+                ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
+                : `Renews on ${endsOn(periodEnd)}.`}
+            </p>
+          </>
+        ) : (
+          <p className="text-center text-sm">
+            <strong className="font-medium">Your last payment didn’t go through.</strong> The
+            membership is paused until it does.
+          </p>
+        )}
+        {manage && (
+          <a href={manage.href} className={cn(quietButton, 'mt-3')}>
+            {manage.label}
+          </a>
+        )}
       </>
-    ) : memberStatus === 'past_due' || memberStatus === 'unpaid' ? (
-      <p className="text-center text-sm">
-        <strong className="font-medium">Your last payment didn’t go through.</strong> The membership
-        is paused until it does.
-      </p>
-    ) : (
+    )
+  } else if (app && !appSupports('purchase')) {
+    // An app build without the store set up, or an older one.
+    body = (
       <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
         Joining in the app is coming soon
       </div>
     )
+  } else if (app && signedIn) {
+    body = <StoreJoin plan={plan} planName={planName} />
   } else if (member) {
     body = (
       <>
@@ -1088,9 +1192,76 @@ function Join({
   )
 }
 
+/**
+ * Joining in the store app: the store's own price and sheet, then the same
+ * wait for the row a returning Stripe checkout does. Apple asks for the plan,
+ * its length, its price, how it renews and links to the terms and the privacy
+ * policy on this screen, so all of it is here.
+ */
+function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
+  const prices = useStorePrices(true)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const store = appPlatform() === 'android' ? 'Google Play' : 'the App Store'
+  const price = prices ? (plan === 'annual' ? prices.annual : prices.monthly) : null
+
+  const act = async (action: () => Promise<StoreResult>, pending: string) => {
+    sound.play('tap')
+    setBusy(true)
+    setNote(null)
+    const result = await action()
+    setBusy(false)
+    if (result.ok && !result.member) setNote(pending)
+    if (!result.ok && 'error' in result) setNote(result.error)
+  }
+
+  return (
+    <>
+      <button
+        disabled={busy || !price}
+        onClick={() =>
+          void act(
+            () => buyInStore(plan),
+            `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. It can take a minute to show here.`,
+          )
+        }
+        className={joinButton}
+      >
+        {busy
+          ? 'Waiting for the store…'
+          : price
+            ? `Join ${planName.toLowerCase()} · ${price}`
+            : 'Loading the store’s prices…'}
+        {!busy && price && <ChevronRight className="size-4" />}
+      </button>
+      {note && <p className="mt-3 text-center text-sm text-muted-foreground">{note}</p>}
+      <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
+        {plan === 'annual' ? 'Billed yearly' : 'Billed monthly'} through {store}. It renews
+        automatically until you cancel in your{' '}
+        {store === 'Google Play' ? 'Google Play' : 'App Store'} settings, at least a day before the
+        period ends.{' '}
+        <Link href="/terms" className="underline underline-offset-2">
+          Terms
+        </Link>{' '}
+        ·{' '}
+        <Link href="/privacy" className="underline underline-offset-2">
+          Privacy
+        </Link>
+      </p>
+      <button
+        disabled={busy}
+        onClick={() => void act(restoreFromStore, 'Nothing to restore on this account.')}
+        className={cn(quietButton, 'mt-3')}
+      >
+        Restore purchases
+      </button>
+    </>
+  )
+}
+
 // --- free versus member ---------------------------------------------------------
 
-function FreeVersusMember({ price }: { price: LocalPrice }) {
+function FreeVersusMember({ price }: { price: ShownPrice }) {
   const member = sellableFeatures().map((f) => f.title)
   return (
     <div className="grid gap-3 md:grid-cols-2 md:gap-4">
@@ -1167,11 +1338,17 @@ function Promises() {
  */
 function Questions({ coming }: { coming: MembershipFeature[] }) {
   const ready = checkoutReady()
+  const app = useInApp()
   return (
     <Reveal>
       <div className="max-w-4xl divide-y divide-foreground/[0.07] overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
         <Question q="Can I join yet?" open>
-          {ready ? (
+          {app ? (
+            <p>
+              Yes. Pick monthly or yearly above and pay through the store. You will need a free Pip
+              account first, and the button makes one if you have not.
+            </p>
+          ) : ready ? (
             <p>
               Yes. Pick monthly or yearly above and you go to Stripe’s checkout page to pay. You
               will need a free Pip account first, and the button makes one if you have not.
@@ -1193,7 +1370,11 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           </p>
         </Question>
         <Question q="How do I cancel?">
-          <p>{HOW_TO_CANCEL}</p>
+          <p>
+            {app
+              ? 'In your store’s subscription settings: on an iPhone, Settings, your name, Subscriptions. The membership is listed there.'
+              : HOW_TO_CANCEL}
+          </p>
           <p>
             Cancelling stops the renewal and leaves you a member until the period you have already
             paid for runs out. A yearly membership cancelled in month two runs to the end of the
@@ -1208,32 +1389,50 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
             .
           </p>
         </Question>
-        <Question q="What does it cost where I live?">
-          <p>
-            One membership, priced in four currencies. Each is the pound’s price converted and
-            rounded, then fixed: you pay the number on this page, not a rate worked out at checkout.
-            Tax is inside every one of them.
-          </p>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {CURRENCIES.map((code) => (
-              <li key={code} className="rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 tabular-nums">
-                <strong className="font-medium text-foreground">{code}</strong>{' '}
-                {MEMBERSHIP_PRICES[code].monthly} a month, or {MEMBERSHIP_PRICES[code].annual} a
-                year
-              </li>
-            ))}
-          </ul>
-          <p>
-            Anywhere else, the page shows dollars. The picker beside the prices changes the currency
-            whenever you like.
-          </p>
-        </Question>
+        {!app && (
+          <Question q="What does it cost where I live?">
+            <p>
+              One membership, priced in four currencies. Each is the pound’s price converted and
+              rounded, then fixed: you pay the number on this page, not a rate worked out at
+              checkout. Tax is inside every one of them.
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {CURRENCIES.map((code) => (
+                <li
+                  key={code}
+                  className="rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 tabular-nums"
+                >
+                  <strong className="font-medium text-foreground">{code}</strong>{' '}
+                  {MEMBERSHIP_PRICES[code].monthly} a month, or {MEMBERSHIP_PRICES[code].annual} a
+                  year
+                </li>
+              ))}
+            </ul>
+            <p>
+              Anywhere else, the page shows dollars. The picker beside the prices changes the
+              currency whenever you like.
+            </p>
+          </Question>
+        )}
         <Question q="Do I need an account?">
           <p>
             To join, yes — a free Pip account, because a membership has to belong to someone. To
             play, never.
           </p>
         </Question>
+        {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
+          <Question q="Do my friends need a membership to play with me?">
+            <p>
+              No. The member opens the room; everyone else joins with the code and a free Pip
+              account. Their buy-in comes out of their own Roll and their winnings go back into it,
+              exactly as on the ladder.
+            </p>
+            <p>
+              Quick match is for members. Camera and mic are only ever on in a room somebody opened
+              for their friends, never at a quick-match table.
+            </p>
+          </Question>
+        )}
         <Question q="Is this pay-to-win?">
           <p>
             Member rooms are ordinary tables — same engine, same shuffle, same opponents, same
@@ -1243,9 +1442,11 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           </p>
           <p>
             We do not think that is pay-to-win, and here is the reasoning so you can disagree with
-            it. Pay-to-win means buying an advantage over another player. Pip is single-player:
-            there is no leaderboard and nobody to overtake. What we will not do, at any price, is
-            sell you something that changes a hand. The{' '}
+            it. Pay-to-win means buying an advantage over another player. There is no leaderboard,
+            and at a multiplayer table nobody can see anybody else’s Roll or rank, so there is
+            nobody to overtake. Everyone at a table sits with the same stack, sees the same things
+            and has the same clock; the membership does not change any of it. What we will not do,
+            at any price, is sell you something that changes a hand. The{' '}
             <a
               href="https://github.com/playpip/pip-web/blob/main/ROADMAP.md"
               target="_blank"
