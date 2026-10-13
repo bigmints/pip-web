@@ -34,6 +34,9 @@
 //
 // A tap on a locked lesson names the lesson the same way (`&lesson=`,
 // `TappedLesson`), loaded only then, so nobody else's page carries the course.
+//
+// A tap on the report shows one (`TappedCoaching`): a made-up player's counts,
+// read by the report's own code, loaded the same way.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -57,6 +60,10 @@ const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.
 })
 
 const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.TappedLesson), {
+  ssr: false,
+})
+
+const TappedCoaching = dynamic(() => import('./TappedCoaching').then((m) => m.TappedCoaching), {
   ssr: false,
 })
 
@@ -101,6 +108,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
           </p>
         )}
         {lesson && <TappedLesson search={search} />}
+        {feature.id === 'coaching' && <TappedCoaching />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a
