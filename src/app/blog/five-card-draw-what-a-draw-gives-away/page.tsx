@@ -42,7 +42,7 @@ export default function FiveCardDrawPost() {
         <p>
           One card covers three different hands. Two pair throws its odd card: 123,552 deals. Four
           to a flush throws the fifth: 110,940, and 34,320 of those broke up a pair to do it. Four
-          in a row throws the fifth too: 68,160.
+          in a row throws the fifth too: 60,480.
         </p>
         <p>
           So we dealt the card too: every one of the 47 left, for each of those deals. A little over
@@ -61,7 +61,7 @@ export default function FiveCardDrawPost() {
 
       <Section title="Three: a pair">
         <p>
-          The common one, 1,056,480 deals, about four in ten. The rule keeps any pair, deuces
+          The common one, 1,057,224 deals, about four in ten. The rule keeps any pair, deuces
           included, and throws the rest. Even a pair of twos beats drawing four to an ace, which is
           what the next number is.
         </p>
@@ -69,28 +69,28 @@ export default function FiveCardDrawPost() {
 
       <Section title="Four and five: nothing">
         <p>
-          Four cards means an ace and nothing to go with it: 458,880 deals. Five means not even
+          Four cards means an ace and nothing to go with it: 466,560 deals. Five means not even
           that: 698,880, more than one deal in four. A regular holding K-Q-8-6-3 throws the lot.
         </p>
       </Section>
 
       <Section title="The one coin flip">
         <p>
-          A pair with four in a row beside it, say 5-6-7-8-8, could go either way. The rule keeps
-          the run and draws one 35 times in 100, and keeps the pair and draws three otherwise. It
-          comes up in 7,440 deals, and it is the only spot where the number can mislead you.
+          A pair at the end of four in a row, say 5-6-7-8-8, could go either way. The rule keeps the
+          run and draws one 35 times in 100, and keeps the pair and draws three otherwise. It comes
+          up in 6,696 deals, and it is the only spot where the number can mislead you.
         </p>
       </Section>
 
-      <Section title="Two things it gets wrong">
+      <Section title="What it does not chase">
         <p>
-          The rule reads J-Q-K-A as four in a row with two ends, like 8-9-T-J. Only a ten fills it,
-          four cards rather than eight. That is 7,680 of the one-card draws above, plus a share of
-          the coin flips.
+          An ace closes a straight at one end. J-Q-K-A fills only with a ten and A-2-3-4 only with a
+          five, four cards rather than the eight that fill 8-9-T-J. The rule chases neither. It
+          keeps the ace and asks for four.
         </p>
         <p>
-          It also does not see A-2-3-4 as a draw at all. It keeps the ace and asks for four. Both
-          are in the counts above, because the counts are the rule as it plays today.
+          It also misses a pair in the middle of the run. Holding 5-6-6-7-8, it does not see the
+          four in a row, keeps the sixes and draws three.
         </p>
         <p>
           <Src path="tests/draw.test.ts" /> holds the rule itself, a hand for each number from
