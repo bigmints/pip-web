@@ -90,7 +90,8 @@ test('every locked surface says what was tapped', (t) => {
   for (const { path, code } of files) {
     if (NOT_A_TAP.has(path)) continue
     const link = NOT_A_TAP_LINK.get(path)
-    if (link) t.true(code.includes(link), `${path} no longer has ${link}; drop it from NOT_A_TAP_LINK`)
+    if (link)
+      t.true(code.includes(link), `${path} no longer has ${link}; drop it from NOT_A_TAP_LINK`)
     t.notRegex(
       link ? code.replaceAll(link, ' ') : code,
       /['"`]\/membership['"`?]/,
