@@ -64,6 +64,10 @@ test('a multiplayer tap on the membership page lists the rules', (t) => {
     'BLIND_CHOICES',
     'TURN_CHOICES',
     'LEAVING_CHOICES',
+    'PACE_CHOICES',
+    'SLOW_SEAT_CHOICES',
+    'MOVE_CHOICES',
+    'ENDING_CHOICES',
   ]) {
     t.regex(sample, new RegExp(`label\\(${list}\\)`))
   }
