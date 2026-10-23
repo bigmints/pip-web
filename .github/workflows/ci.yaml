@@ -39,6 +39,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # First, because it takes seconds and a fresh advisory is the usual reason
+      # main stops deploying. Last, it failed ten minutes in, after the tests.
+      - name: Security audit
+        run: pnpm test:audit
+
       # The test:all gate, one step per check so a failure names its culprit.
       - name: Check formatting
         run: pnpm test:format
@@ -54,9 +59,6 @@ jobs:
 
       - name: Check for unused code (knip)
         run: pnpm test:knip
-
-      - name: Security audit
-        run: pnpm test:audit
 
       # Verify the static export builds. gen-credits falls back to the committed
       # JSON if GitHub is unreachable, and the analytics id is optional, so this
