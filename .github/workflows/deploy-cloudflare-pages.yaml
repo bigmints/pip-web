@@ -57,6 +57,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # First, because it takes seconds and a fresh advisory is the usual reason
+      # main stops deploying. Last, it failed ten minutes in, after the tests.
+      - name: Security audit
+        run: pnpm test:audit
+
       # The test:all gate, one step per check so a failure names its culprit.
       - name: Check formatting
         run: pnpm test:format
@@ -72,9 +77,6 @@ jobs:
 
       - name: Check for unused code (knip)
         run: pnpm test:knip
-
-      - name: Security audit
-        run: pnpm test:audit
 
       # Only real pushes to main cut a release; a manual dispatch just redeploys
       # the current version. Patch by default; put #minor or #major in a commit
