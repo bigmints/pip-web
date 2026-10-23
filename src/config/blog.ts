@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'turn-based-poker-with-friends',
+    title: 'Turn-based poker with friends who are never free at once',
+    description:
+      'A slow game on Pip is a private Hold’em table where each move gets 1 to 24 hours, and your clock stops during your quiet hours. Moves set in advance, a replay of what you missed, and a notification when it is your turn. The host needs the membership; friends join free.',
+    date: '2026-10-22',
+  },
+  {
     slug: 'omaha-hi-lo-how-often-a-low',
     title: 'How often is there a low in Omaha Hi-Lo?',
     description:
