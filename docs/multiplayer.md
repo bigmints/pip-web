@@ -35,6 +35,7 @@ table ever sees another player's Roll or rank.
 | | | |
 |---|---|---|
 | Who pays | **Only the host.** Friends join free with an account. Quick match is members only. | 2026-10-11 |
+| Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). Slow games and quick match stay members only. | 2026-10-23 |
 | Format | **Sit-and-go**, at ladder venue stakes. | 2026-10-11 |
 | Chips | **The Roll**, and nobody sees anybody else's Roll or rank. | 2026-10-06 |
 | Bots | **Quick match fills with AI strangers** (tagged "AI") after about 30 seconds. **A host may add the cast to a private room.** | 2026-10-11 |
@@ -137,7 +138,9 @@ The engine is imported unchanged. What runs on the server is what is in the publ
 
 - **`index.ts`**, the front door. Every socket and every room creation must come from an origin
   in `ALLOWED_ORIGINS`.
-  - `POST /rooms` creates a room. It needs a bearer token and membership.
+  - `POST /rooms` creates a room. It needs a bearer token and membership, or today's free
+    room (`free-room-used` once spent; the `Player` object keeps the day).
+  - `GET /free-room` says whether today's free room is spent, for the hub.
   - `GET /rooms/:code` returns a peek for the join screen.
   - `GET /rooms/:code/ws` is a table's socket.
   - `GET /queue/:venueId/ws` is a stake's queue.
@@ -223,7 +226,7 @@ only the service role reads or writes them. Read reports in the Supabase table e
 
 | Path | What it is |
 |---|---|
-| `/game/multiplayer` (`MultiplayerHub`) | Open a room, type a code, quick match. Everybody can see it; opening a room and quick match ask for the membership. |
+| `/game/multiplayer` (`MultiplayerHub`) | Open a room, type a code, quick match. Everybody can see it; quick match, slow games and a second room in a day ask for the membership. |
 | `/game/room?code=…` (`RoomScreen`) | The code is in the query string because the site is a static export. Sitting down is a tap (`JoinGate`). A host or a matched player is seated straight from the hub. |
 | `RoomLobby` | The felt with the chairs filling, and the code on the cloth. |
 | `RoomTable` | The live table's own parts, turned so you sit at the near rail. |
@@ -289,6 +292,13 @@ mostly the Workers Paid base. Hibernation removes most of the duration charge.
 
 TURN is $0.05/GB after the first 1,000 GB a month free, shared with the SFU. Only sessions that
 cannot connect directly use it.
+
+**Camera and voice, per free room (estimate, 2026-10-23, nothing measured).** Media is a
+peer-to-peer mesh at 320x240, 15 fps (`store/media.ts`), roughly 0.5 Mbps a stream with voice.
+Only relayed streams cost anything. Worst case, all four seats relayed: about 2.7 GB a room-hour.
+At 50 free rooms a day of an hour each that is about 4,000 GB a month, about $150 past the free
+1,000 GB. At a typical 15-20% relayed it is 600-800 GB, inside the free allowance. Watch the
+Realtime TURN usage page; a free-room time cap is the first fix if it climbs.
 
 ## By hand: what CI cannot see
 

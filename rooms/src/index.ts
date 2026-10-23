@@ -1,6 +1,7 @@
 // The room server's front door.
 //
-//   POST /rooms               create a private room (a member's, with a token)
+//   POST /rooms               create a private room (a member's, or today's free one)
+//   GET  /free-room           whether today's free room is spent (a token)
 //   GET  /rooms/:code         what a code opens: the stake and who is waiting
 //   GET  /rooms/:code/ws      the table's socket
 //   GET  /queue/:venueId/ws   quick match at a ladder stake
@@ -18,6 +19,7 @@
 // a visitor's session.
 
 import { cryptoInt } from '@/lib/cryptoRng'
+import { hostingAllowance } from '@/lib/multiplayer/freeRoom'
 import { normaliseRoomCode, newRoomCode } from '@/lib/multiplayer/code'
 import { parseClientMessage } from '@/lib/multiplayer/protocol'
 import { type RoomKind, type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
@@ -72,7 +74,7 @@ export default {
     if (parts[0] === 'notify' && parts[1] === 'key' && request.method === 'GET') {
       return json({ key: env.VAPID_PUBLIC_KEY ?? null }, 200, cors)
     }
-    if (parts[0] === 'slow' || parts[0] === 'notify') {
+    if (parts[0] === 'slow' || parts[0] === 'notify' || parts[0] === 'free-room') {
       if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)
       return mine(request, env, cors, parts)
     }
@@ -90,9 +92,9 @@ export default {
 } satisfies ExportedHandler<Env>
 
 /**
- * A member opens a room. The host is seated as it is created, so the room
- * exists with somebody in it from its first moment and the code they share
- * opens onto their face.
+ * A member, or somebody spending today's free room, opens a room. The host is
+ * seated as it is created, so the room exists with somebody in it from its
+ * first moment and the code they share opens onto their face.
  */
 async function createRoom(
   request: Request,
@@ -124,7 +126,23 @@ async function createRoom(
 
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
-  if (!(await isMember(userId, token, env))) return json({ error: 'members-only' }, 403, cors)
+  const member = await isMember(userId, token, env)
+  if (hostingAllowance({ member, kind, spentDay: null, now: Date.now() }) === 'members-only') {
+    return json({ error: 'members-only' }, 403, cors)
+  }
+  // Without the membership: today's free room, claimed now so two tabs cannot
+  // both have it, and handed back below if the room cannot be opened.
+  let release = async () => {}
+  if (!member) {
+    const claim = (await (await player(env, userId, 'free-room', {})).json()) as {
+      ok: boolean
+      previous?: string | null
+    }
+    if (!claim.ok) return json({ error: 'free-room-used' }, 403, cors)
+    release = async () => {
+      await player(env, userId, 'free-room/release', { previous: claim.previous ?? null })
+    }
+  }
   if (kind === 'slow') {
     const res = await player(env, userId, 'open')
     const { open } = (await res.json()) as { open: number }
@@ -148,8 +166,12 @@ async function createRoom(
       body: JSON.stringify(init),
     })
     if (res.status === 201) return json({ code }, 201, cors)
-    if (res.status === 400) return json({ error: 'bad-settings' }, 400, cors)
+    if (res.status === 400) {
+      await release()
+      return json({ error: 'bad-settings' }, 400, cors)
+    }
   }
+  await release()
   return json({ error: 'busy' }, 503, cors)
 }
 
@@ -185,6 +207,8 @@ async function mine(
     })
 
   switch (route) {
+    case 'GET /free-room':
+      return relay(await player(env, userId, 'free-room'))
     case 'GET /slow':
       return relay(await player(env, userId, 'games'))
     case 'POST /slow/dismiss': {

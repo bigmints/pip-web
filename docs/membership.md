@@ -105,16 +105,24 @@ to be told before it happened, not after.
 
 ## Multiplayer: the host pays, friends join free (2026-10-11)
 
-**Opening a private room and quick match are the membership's. Joining a member's room with
-its code needs a free account and nothing else** (Will, 2026-10-11). A member's game should
-never be short of players because their friends have not paid, and every friend sat at a
+**Opening rooms whenever you like, slow games and quick match are the membership's. Joining a
+room with its code needs a free account and nothing else** (Will, 2026-10-11). A member's game
+should never be short of players because their friends have not paid, and every friend sat at a
 member's table sees what the membership is.
+
+**Anyone with a free account can open one live private room a day** (Will, 2026-10-23, cmo#220):
+the same room a member opens, camera, voice and regulars included, and nothing at the table says
+who paid. Slow games and quick match stay members only; signed out, you cannot host.
 
 - **The gate is on the room server**, not the browser (`rooms/src/auth.ts`): creating a room
   and joining a queue read the `memberships` row with the service role. `useEntitlement()`
   only decides which buttons the hub shows.
-- **It is not in the daily free game.** A room is not one table you sit down to on your own;
-  `taste.ts` is unchanged and knows nothing about rooms.
+- **The free room is counted on the room server too.** The decision is
+  `hostingAllowance()` in `lib/multiplayer/freeRoom.ts`; the account's `Player` object keeps the
+  UTC day it was last spent, claimed when the room is created and handed back if creation
+  fails. A room costs us money and seats other people, so a browser count would not do.
+- **It is not the daily free game.** The free room and the free member table (`taste.ts`) are
+  separate allowances; spending one never spends the other.
 - **Only for sale where it exists.** The `multiplayer` feature is `needs: 'rooms'`:
   `sellableFeatures()` leaves it out of any build without `NEXT_PUBLIC_ROOMS_URL`, so a page
   never sells tables the build cannot reach.

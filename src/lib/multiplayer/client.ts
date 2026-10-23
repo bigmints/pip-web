@@ -141,6 +141,12 @@ async function mine<T>(path: string, body?: unknown): Promise<T | null> {
   }
 }
 
+/** Whether today's free room is spent. Null when it could not be asked: the server decides anyway. */
+export async function fetchFreeRoomSpent(): Promise<boolean | null> {
+  const body = await mine<{ spent: boolean }>('/free-room')
+  return body?.spent ?? null
+}
+
 /** Your slow games as mini tables. Null when they could not be fetched. */
 export async function fetchSlowGames(): Promise<SlowCard[] | null> {
   const body = await mine<{ games: SlowCard[] }>('/slow')
