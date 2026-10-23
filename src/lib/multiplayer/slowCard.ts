@@ -13,6 +13,9 @@ import type { RoomPhase, RoomState } from './room'
 import type { MoveHours, SlowEnding } from './slow'
 import { viewFor } from './view'
 
+/** A turn shorter than this is one the server takes for you straight away. */
+const SAT_OUT_MS = 5_000
+
 export interface SlowCardSeat {
   id: string
   name: string
@@ -70,7 +73,13 @@ export function cardFor(
   const hand = view.hand
   const toActId = hand && hand.toActIndex >= 0 ? (hand.players[hand.toActIndex]?.id ?? null) : null
   const toAct = view.phase === 'playing' && state.dueKind !== 'next-hand' ? toActId : null
-  const yourTurn = toAct !== null && toAct === view.you
+  // Only a turn that is really yours to take: not a move you set ahead (made
+  // in a moment), and not one taken for you at once because you are sat out.
+  const waitingOnYou =
+    state.dueKind === 'turn' &&
+    state.dueAt !== null &&
+    state.dueAt - (state.turnFrom ?? opts.now) > SAT_OUT_MS
+  const yourTurn = toAct !== null && toAct === view.you && waitingOnYou
   const me = view.players.find((p) => p.id === view.you)
   const last = hand?.actions.at(-1)
   const seen = view.seen

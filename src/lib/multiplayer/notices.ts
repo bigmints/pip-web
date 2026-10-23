@@ -33,6 +33,11 @@ export const DEFAULT_PREFS: PlayPrefs = {
 
 /** With no device to push to, the email waits this long, in case they are on their way. */
 export const EMAIL_ONLY_AFTER_MS = 5 * 60 * 1000
+/**
+ * A push waits this long, so a reply made straight away (both of you at the
+ * table) never buzzes a phone, and a move made for you never does either.
+ */
+export const PUSH_AFTER_MS = 10_000
 /** At most one turn email in this long. */
 export const EMAIL_GAP_MS = 12 * 60 * 60 * 1000
 
@@ -71,7 +76,7 @@ export function planNotice(
     return {
       code: card.code,
       key: card.turnKey,
-      pushAt: pushing ? awake(now, prefs) : null,
+      pushAt: pushing ? awake(now + PUSH_AFTER_MS, prefs) : null,
       emailAt: prefs.email
         ? awake(now + (pushing ? moveMs / 4 : EMAIL_ONLY_AFTER_MS), prefs)
         : null,

@@ -7,6 +7,7 @@ import {
   DEFAULT_PREFS,
   EMAIL_GAP_MS,
   EMAIL_ONLY_AFTER_MS,
+  PUSH_AFTER_MS,
   emailSlot,
   nextDue,
   parseDevice,
@@ -76,11 +77,11 @@ test('your move is pushed at once and emailed a quarter of the way through the c
   const card = cardFor(s, toAct(s), { watching: false, now: 0 })
   const now = Date.parse('2026-07-01T11:00:00Z') // midday BST
   const n = planNotice(undefined, card, prefs, true, now)!
-  t.is(n.pushAt, now)
+  t.is(n.pushAt, now + PUSH_AFTER_MS)
   t.is(n.emailAt, now + 3 * H)
   // The same turn told again changes nothing.
   t.is(planNotice(n, card, prefs, true, now + H), n)
-  t.is(nextDue([n]), now)
+  t.is(nextDue([n]), now + PUSH_AFTER_MS)
 })
 
 test('with no device to push to, the email comes after a few minutes', (t) => {
@@ -161,4 +162,16 @@ test('settings and devices are read strictly', (t) => {
     token: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
   })
   t.is(parseDevice({ kind: 'expo', token: 'nope' }), null)
+})
+
+test('a move set ahead is not your move to be told about', async (t) => {
+  const { setPre } = await import('@/lib/multiplayer/room')
+  let s = dealt()
+  const mover = toAct(s)
+  const other = mover === 'user-0' ? 'user-1' : 'user-0'
+  s = must(setPre(s, other, { kind: 'check-fold' }))
+  s = must(act(s, mover, { type: 'call' }, 1))
+  // The turn is the other player's, but their check/fold is about to be made for them.
+  t.is(s.dueKind, 'pre')
+  t.false(cardFor(s, other, { watching: false, now: 1 }).yourTurn)
 })
