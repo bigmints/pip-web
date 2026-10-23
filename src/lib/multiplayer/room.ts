@@ -346,8 +346,11 @@ export function playerFor(state: RoomState, userId: string): RoomPlayer | undefi
  * Somebody already seated is a reconnect, at any phase: their seat, stack and
  * cards are where they left them, which is the whole of what makes a phone
  * locking mid-hand survivable. Anybody new can only sit down before the deal.
+ *
+ * A slow game deals itself the moment its last seat fills, so a host can send
+ * the code and go: nobody has to be there to press Deal. `rng` deals it.
  */
-export function join(state: RoomState, j: Joiner, now: number): Result {
+export function join(state: RoomState, j: Joiner, now: number, rng?: Rng): Result {
   if (state.phase === 'closed') return fail('closed')
   if (state.banned.includes(j.userId)) return fail('kicked')
   // Somebody the host has blocked is told the same as somebody removed: no more.
@@ -385,6 +388,11 @@ export function join(state: RoomState, j: Joiner, now: number): Result {
     next.reserved.every((id) => next.players.some((p) => p.userId === id))
   ) {
     return ok(schedule(next, now, 'start'))
+  }
+  const ending = next.settings.ending
+  const dateGone = ending?.kind === 'date' && ending.at <= now
+  if (next.kind === 'slow' && rng && next.players.length >= next.maxSeats && !dateGone) {
+    return ok(begin(next, now, rng))
   }
   return ok(bump(next))
 }

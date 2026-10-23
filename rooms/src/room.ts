@@ -359,6 +359,7 @@ export class PokerRoom extends DurableObject<Env> {
         current,
         { userId, name: msg.name, avatar: msg.avatar, ring: msg.ring, ...(quiet ? { quiet } : {}) },
         Date.now(),
+        cryptoRng,
       )
       if (!result.ok) return this.fail(ws, result.error, true)
       // One socket per person: a second tab takes the seat over from the first.

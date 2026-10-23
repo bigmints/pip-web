@@ -465,3 +465,21 @@ test('every hand of a slow game is rebuilt move by move, ending where it really 
   const mine = viewFor(s, s.players.find((p) => p.id === lastActor)!.userId!)
   t.is(catchUpFrames(mine).length, 0)
 })
+
+test('a slow game deals itself when its last seat fills, so the host can send the code and go', (t) => {
+  const rng = mulberry32(71)
+  const open = createRoom({ code: 'SLOWGM', kind: 'slow', venue, host: person(0), now: 0 })
+  // Without a deck to deal with, a join only seats (a live room's host still deals).
+  t.is(must(join(open, person(1), 5)).phase, 'lobby')
+  const dealt = must(join(open, person(1), 5, rng))
+  t.is(dealt.phase, 'playing')
+  t.is(dealt.startedAt, 5)
+  t.is(dealt.dueKind, 'turn')
+  // Not full yet: still waiting.
+  const three = must(configure(open, 'user-0', { seats: 3 }))
+  t.is(must(join(three, person(1), 5, rng)).phase, 'lobby')
+  // A live private room never deals itself.
+  const live = createRoom({ code: 'LIVEGM', kind: 'private', venue, host: person(0), now: 0 })
+  const two = must(configure(live, 'user-0', { seats: 2 }))
+  t.is(must(join(two, person(1), 5, rng)).phase, 'lobby')
+})
