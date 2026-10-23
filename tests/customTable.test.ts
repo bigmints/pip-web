@@ -4,6 +4,7 @@ import {
   CUSTOM_BUY_INS,
   CUSTOM_DEPTHS,
   CUSTOM_SEATS,
+  CUSTOM_SPEED_WORDS,
   CUSTOM_SPEEDS,
   CUSTOM_VENUE_ID,
   DEFAULT_CUSTOM,
@@ -287,4 +288,23 @@ test('a full ring seats seven different regulars at every buy-in', (t) => {
       )
     }
   }
+})
+
+test('a tap on the builder lists its choices from the lists it is built with', (t) => {
+  const tapped = readFileSync('src/components/membership/TappedFor.tsx', 'utf8')
+  t.regex(tapped, /feature\.id === 'custom-tables' && <TappedCustomTable \/>/)
+  const sample = readFileSync('src/components/membership/TappedCustomTable.tsx', 'utf8')
+  for (const list of ['CUSTOM_BUY_INS', 'CUSTOM_SEATS', 'CUSTOM_DEPTHS', 'CUSTOM_SPEEDS']) {
+    t.regex(sample, new RegExp(`${list}\\.map`))
+  }
+  t.regex(sample, /invitableCast\(\)\.length/)
+})
+
+test('every speed the builder offers has a word', (t) => {
+  for (const speed of CUSTOM_SPEEDS) t.truthy(CUSTOM_SPEED_WORDS[speed], `${speed}`)
+})
+
+test('the bounty the tap describes is the cap the builder enforces', (t) => {
+  // TappedCustomTable says "Up to a quarter of the buy-in".
+  for (const buyIn of CUSTOM_BUY_INS) t.is(maxBounty(buyIn), Math.floor(buyIn / 4))
 })

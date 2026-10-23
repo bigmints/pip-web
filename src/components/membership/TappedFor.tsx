@@ -47,7 +47,8 @@
 // read by the report's own code, loaded the same way.
 //
 // A tap on hosting lists the rules a host sets (`TappedMultiplayer`), from the
-// lists the room itself is opened with.
+// lists the room itself is opened with, and a tap on the table builder lists
+// what a built table lets you pick (`TappedCustomTable`), from the builder's.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -92,6 +93,11 @@ const TappedShopItem = dynamic(() => import('./TappedShopItem').then((m) => m.Ta
 
 const TappedMultiplayer = dynamic(
   () => import('./TappedMultiplayer').then((m) => m.TappedMultiplayer),
+  { ssr: false },
+)
+
+const TappedCustomTable = dynamic(
+  () => import('./TappedCustomTable').then((m) => m.TappedCustomTable),
   { ssr: false },
 )
 
@@ -147,6 +153,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         {shopItem && <TappedShopItem search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
         {feature.id === 'multiplayer' && <TappedMultiplayer />}
+        {feature.id === 'custom-tables' && <TappedCustomTable />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

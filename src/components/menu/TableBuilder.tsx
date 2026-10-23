@@ -22,6 +22,7 @@ import {
   CUSTOM_BUY_INS,
   CUSTOM_DEPTHS,
   CUSTOM_SEATS,
+  CUSTOM_SPEED_WORDS,
   CUSTOM_SPEEDS,
   DEFAULT_CUSTOM,
   type CustomTableSpec,
@@ -209,7 +210,7 @@ export function TableBuilder() {
               <Segmented
                 options={CUSTOM_SPEEDS.map((n) => ({
                   value: n,
-                  label: SPEED_WORDS[n] ?? `${n}`,
+                  label: CUSTOM_SPEED_WORDS[n] ?? `${n}`,
                   sub: `${n} hands`,
                 }))}
                 value={spec.handsPerLevel}
@@ -347,14 +348,6 @@ export function TableBuilder() {
       </div>
     </SectionScreen>
   )
-}
-
-/** Hands per level, in words. Falls back to the number for a speed added later. */
-const SPEED_WORDS: Record<number, string> = {
-  2: 'Hyper',
-  5: 'Fast',
-  9: 'Standard',
-  14: 'Slow',
 }
 
 /**
