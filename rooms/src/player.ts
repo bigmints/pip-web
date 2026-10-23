@@ -9,6 +9,10 @@
 // It also holds what those notices need: the player's quiet hours and
 // switches (Settings → Notifications) and the devices they allowed pushes on.
 // All of it is keyed by the account, so it works the same on every device.
+//
+// And the day their free room was last spent (`lib/multiplayer/freeRoom.ts`),
+// so the one-a-day allowance holds on every device and cannot be reset from
+// the browser.
 
 import { DurableObject } from 'cloudflare:workers'
 import {
@@ -23,6 +27,7 @@ import {
 } from '@/lib/multiplayer/notices'
 import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
+import { freeRoomSpent, utcDay } from '@/lib/multiplayer/freeRoom'
 import { json, type Env } from './env'
 import { emailOf, gameUrl, offLink, pushAll, sendEmail, turnEmail } from './notify'
 
@@ -70,6 +75,26 @@ export class Player extends DurableObject<Env> {
           (g) => g.phase === 'lobby' || g.phase === 'playing',
         )
         return json({ open: open.length, max: MAX_SLOW_GAMES }, 200)
+      }
+      case 'GET /free-room': {
+        const day = await this.get<string | null>('freeRoomDay', null)
+        return json({ spent: freeRoomSpent(day, Date.now()) }, 200)
+      }
+      case 'POST /free-room': {
+        // Read and written with nothing awaited between, so two rooms opened
+        // at once cannot both have today's.
+        const now = Date.now()
+        const previous = await this.get<string | null>('freeRoomDay', null)
+        if (freeRoomSpent(previous, now)) return json({ ok: false }, 200)
+        await this.ctx.storage.put('freeRoomDay', utcDay(now))
+        return json({ ok: true, previous }, 200)
+      }
+      case 'POST /free-room/release': {
+        // The room could not be opened after all: today's is theirs again.
+        const { previous } = (await request.json()) as { previous?: string | null }
+        if (typeof previous === 'string') await this.ctx.storage.put('freeRoomDay', previous)
+        else await this.ctx.storage.delete('freeRoomDay')
+        return json({ ok: true }, 200)
       }
       case 'POST /card':
         return this.card((await request.json()) as SlowCard)

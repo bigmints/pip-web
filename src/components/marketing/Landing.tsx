@@ -690,7 +690,7 @@ function Multiplayer() {
           <SectionHeading
             eyebrow="Multiplayer"
             title="Deal your friends in."
-            body="Open a room, send the code, and play at the same table. Turn your camera on and your face takes your seat; turn your mic on and talk while you play. Opening a room comes with the membership, and your friends join free."
+            body="Open a room, send the code, and play at the same table. Turn your camera on and your face takes your seat; turn your mic on and talk while you play. One room a day is free with an account; the membership opens as many as you like. Your friends join free."
           />
           <Reveal className="mt-9 flex flex-wrap items-center gap-3" delay={0.1}>
             <Link
