@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Palette, Settings } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
@@ -68,6 +68,10 @@ export function AppBar({
   const [styleOpen, setStyleOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  const centred = Boolean(title) && leading !== 'none'
+  const row = useRef<HTMLDivElement>(null)
+  const stacked = useStackedTitle(row, centred)
+
   const back = () => {
     sound.play('tap')
     if (onBack) onBack()
@@ -76,7 +80,18 @@ export function AppBar({
 
   return (
     <header className={cn('w-full px-6 pt-6 md:px-10 md:pt-8', className)}>
-      <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-3">
+      <div
+        ref={row}
+        className={cn(
+          'mx-auto max-w-6xl items-center',
+          // With a centred title: three columns, the sides equal while there
+          // is room so the title sits dead centre. When the buttons leave it
+          // no room (a phone, a bigger text size), it drops to its own line.
+          centred
+            ? 'grid grid-cols-[minmax(max-content,1fr)_minmax(0,auto)_minmax(max-content,1fr)] gap-x-3 gap-y-1'
+            : 'flex justify-between gap-3',
+        )}
+      >
         {/* leading */}
         {leading === 'profile' ? (
           <button
@@ -84,7 +99,7 @@ export function AppBar({
               sound.play('tap')
               setProfileOpen(true)
             }}
-            className="flex items-center gap-3 rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98]"
+            className="flex items-center gap-3 justify-self-start rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98]"
             aria-label="Edit player"
           >
             {avatar && <PlayerAvatar spec={avatar} size={40} ring={ring} />}
@@ -96,7 +111,7 @@ export function AppBar({
         ) : leading === 'back' ? (
           <button
             onClick={back}
-            className="-ml-2 flex items-center gap-1 rounded-full py-1.5 pl-2 pr-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.98]"
+            className="-ml-2 flex items-center gap-1 justify-self-start whitespace-nowrap rounded-full py-1.5 pl-2 pr-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.98]"
           >
             <ChevronLeft className="size-4" />
             {backLabel}
@@ -107,15 +122,25 @@ export function AppBar({
           <div />
         )}
 
-        {/* centred title (absolute so it stays centred regardless of side widths) */}
-        {title && leading !== 'none' && (
-          <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center leading-tight">
+        {/* centred title, in its own column so it can never overlap the sides */}
+        {centred && (
+          <div
+            className={cn(
+              'flex min-w-0 flex-col items-center leading-tight [&>*]:max-w-full [&>*]:truncate',
+              stacked && 'col-span-full row-start-2',
+            )}
+          >
             {title}
           </div>
         )}
 
         {/* the shared right cluster: page actions, then pip · Style · Settings */}
-        <div className="flex items-center gap-0.5 md:gap-1">
+        <div
+          className={cn(
+            'flex items-center gap-0.5 md:gap-1',
+            centred && 'col-start-3 row-start-1 justify-self-end',
+          )}
+        >
           {actions}
           {showWordmark && (
             <span className="mx-1 select-none text-xl font-semibold lowercase tracking-tight text-muted-foreground">
@@ -161,6 +186,35 @@ export function AppBar({
       )}
     </header>
   )
+}
+
+/**
+ * Whether a centred title has to drop below the bar's buttons: true when the
+ * back button, the title and the right cluster can't share one row. Measured,
+ * not guessed, because the text size, the label and the buttons all vary.
+ * The row's children are always [leading, title, actions].
+ */
+function useStackedTitle(row: React.RefObject<HTMLDivElement | null>, enabled: boolean): boolean {
+  const [stacked, setStacked] = useState(false)
+  useEffect(() => {
+    const el = row.current
+    if (!enabled || !el) return
+    const measure = () => {
+      const [lead, title, actions] = Array.from(el.children) as HTMLElement[]
+      if (!lead || !title || !actions) return
+      // The title's own width, untruncated: its lines' full text widths.
+      const need = Math.max(0, ...Array.from(title.children).map((c) => c.scrollWidth))
+      const gap = Number.parseFloat(getComputedStyle(el).columnGap) || 0
+      setStacked(lead.offsetWidth + need + actions.offsetWidth + gap * 2 > el.clientWidth)
+    }
+    // Resize callbacks land after layout and before paint, so the first
+    // measurement never shows a frame of overlap.
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    for (const child of Array.from(el.children)) observer.observe(child)
+    return () => observer.disconnect()
+  }, [row, enabled])
+  return enabled && stacked
 }
 
 /** A single icon button styled for the AppBar's `actions` slot. */

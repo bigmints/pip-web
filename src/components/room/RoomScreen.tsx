@@ -63,7 +63,13 @@ export function RoomScreen() {
   const sitting = code !== null && roomCode === code
   const slow = view?.kind === 'slow'
 
+  // Set the moment Back is pressed. Clearing the room drops this screen to
+  // the join gate for a frame before the route changes, and the gate puts you
+  // straight back in a slow game you hold a seat at.
+  const [leaving, setLeaving] = useState(false)
+
   const goBack = () => {
+    setLeaving(true)
     useMedia.getState().stop()
     // A slow game's seat stays yours with the screen closed: back is only back.
     if (slow) {
@@ -77,11 +83,13 @@ export function RoomScreen() {
   }
   /** A slow game, given up on purpose: the seat is freed, or folded out once dealt. */
   const leaveGame = () => {
+    setLeaving(true)
     leave()
     void useSlowGames.getState().refresh()
     router.push('/game')
   }
 
+  if (leaving) return <Waiting label="Leaving the table" />
   if (!roomsConfigured()) return <Unavailable />
   if (!code) return <NoRoom message="That link doesn’t have a room code in it." />
   if (!sitting) return <JoinGate code={code} />
