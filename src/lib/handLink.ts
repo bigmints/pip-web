@@ -19,6 +19,7 @@ import type { GradedDecision, Grade } from '@/lib/review/grade'
 import { verdictOf } from '@/lib/review/grade'
 import type { PricedStreet } from '@/lib/coach'
 import { cardFromString, cardToString, RANKS, SUITS, type Card } from '@/lib/poker/cards'
+import { type AvatarFeatures, parseFeatures } from '@/lib/avatarParts'
 
 /** Bumped if the wire format ever changes; unknown versions refuse cleanly. */
 const LINK_VERSION = 1
@@ -57,9 +58,12 @@ interface WireHand {
   // --- v2 only -------------------------------------------------------------
   /** Where it was played. */
   vn?: string
-  /** Seats, in seat order, as player indexes; `a` is each one's avatar. */
+  /**
+   * Seats, in seat order, as player indexes; `a` is each one's avatar, with a
+   * member's picked parts third when there are any.
+   */
   t?: number[]
-  a?: [string, string][]
+  a?: ([string, string] | [string, string, AvatarFeatures])[]
   /** Every hole card, per player index ('' where nobody knows). */
   o?: string[]
   /** Button, as a player index. */
@@ -153,7 +157,10 @@ export function encodeHand(
     wire.v = REVIEW_VERSION
     if (review.venueName) wire.vn = review.venueName
     wire.t = seats.map((seat) => ids.indexOf(seat.id))
-    wire.a = seats.map((seat) => [seat.avatar.seed, seat.avatar.backgroundColor])
+    wire.a = seats.map((seat) => {
+      const { seed, backgroundColor, features } = seat.avatar
+      return features ? [seed, backgroundColor, features] : [seed, backgroundColor]
+    })
     wire.o = ids.map(
       (id) =>
         record.hole
@@ -304,9 +311,14 @@ function decodeReview(
 
   const seats: NonNullable<HandRecord['seats']> = []
   for (let s = 0; s < t.length; s++) {
-    const [seed, backgroundColor] = Array.isArray(a[s]) ? a[s] : []
+    const [seed, backgroundColor, picked] = Array.isArray(a[s]) ? a[s] : []
     if (typeof seed !== 'string' || typeof backgroundColor !== 'string') return null
-    seats.push({ id: idFor(t[s]), name: wire.p[t[s]], avatar: { seed, backgroundColor } })
+    const features = parseFeatures(picked)
+    seats.push({
+      id: idFor(t[s]),
+      name: wire.p[t[s]],
+      avatar: { seed, backgroundColor, ...(features ? { features } : {}) },
+    })
   }
 
   const hole: NonNullable<HandRecord['hole']> = []

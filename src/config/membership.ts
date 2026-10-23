@@ -386,7 +386,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'cosmetics',
     title: 'The members’ shelf',
     blurb:
-      'Card backs that wear a real foil, a gilt ring round your avatar, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
+      'Card backs that wear a real foil, an avatar you build feature by feature, a gilt ring round it, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
     shipped: true,
   },
 ]

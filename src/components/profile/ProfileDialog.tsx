@@ -77,6 +77,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         onSubmit={save}
         avatarSize={88}
         compact
+        customise
       />
       <div className="mt-4 flex gap-2">
         <button

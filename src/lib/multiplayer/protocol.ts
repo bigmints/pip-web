@@ -7,6 +7,7 @@
 // dropped, never half-read.
 
 import type { AvatarSpec } from '@/lib/avatar'
+import { parseFeatures } from '@/lib/avatarParts'
 import type { Action, ActionType } from '@/lib/poker/engine'
 import type { RoomSettings } from './room'
 import {
@@ -137,7 +138,9 @@ function parseAvatar(v: unknown): AvatarSpec | null {
   if (typeof v.backgroundColor !== 'string' || !/^[0-9a-f]{6}$/i.test(v.backgroundColor)) {
     return null
   }
-  return { seed: v.seed, backgroundColor: v.backgroundColor }
+  // A member's picked parts ride along; anything unknown is dropped, not refused.
+  const features = parseFeatures(v.features)
+  return { seed: v.seed, backgroundColor: v.backgroundColor, ...(features ? { features } : {}) }
 }
 
 const isMinute = (v: unknown): v is number =>

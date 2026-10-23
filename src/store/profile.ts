@@ -352,7 +352,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 26
+export const PERSIST_VERSION = 27
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -795,6 +795,9 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // v25 → v26: the win % became something you can switch off. Everybody keeps
   // seeing it until they do.
   if (fromVersion < 26) s.showOdds = true
+  // v26 → v27: an avatar can carry `features`, the parts a member picked by
+  // hand (pip-web#259). Absent means the seed draws every part, which is what
+  // every older avatar already is, so there is nothing to write.
   return s
 }
 

@@ -255,3 +255,15 @@ test('a review link with a broken table refuses whole', (t) => {
   )
   t.is(forge({ st: [45, [1, 2], [0, 0, 0]] }), null, 'stacks missing a player')
 })
+
+test('a member’s picked avatar parts ride in a review link', (t) => {
+  const features = { hair: 'hat', glasses: 'none' }
+  const seats = full.seats!.map((s) =>
+    s.id === 'hero' ? { ...s, avatar: { ...s.avatar, features } } : s,
+  )
+  const back = decodeShared(encodeHand({ ...full, seats }, { decisions: [decision] }))
+  const rec = back!.record
+  // Decoded seats get fresh ids, so they are found by name.
+  t.deepEqual(rec.seats!.find((s) => s.name === 'Will')!.avatar.features, features)
+  t.is(rec.seats!.find((s) => s.name === 'Vivienne')!.avatar.features, undefined)
+})
