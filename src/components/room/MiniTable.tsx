@@ -121,7 +121,7 @@ export function MiniTable({
         />
       </div>
 
-      <div className={cn('relative aspect-[5/4] w-full', !yourMove && !finished && 'opacity-90')}>
+      <div className={cn('relative aspect-[16/10] w-full', !yourMove && !finished && 'opacity-90')}>
         {/* The oval: rail, then cloth. */}
         <div
           aria-hidden
@@ -225,7 +225,9 @@ export function MiniTable({
       </div>
 
       <div className="flex items-center justify-between gap-2 px-4 pb-3.5 pt-1">
-        <span className="min-w-0 truncate text-sm font-semibold">{opponents(card)}</span>
+        <span className="min-w-0 truncate text-sm font-semibold">
+          {others.length > 0 ? opponents(card) : `${card.moveHours}h a move`}
+        </span>
         <span
           className={cn(
             'flex shrink-0 items-center gap-1.5 text-xs font-medium tabular-nums',

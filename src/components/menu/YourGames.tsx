@@ -48,11 +48,12 @@ export function YourGames({ delay = 0, className }: { delay?: number; className?
           </span>
         )}
       </div>
-      <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-3 pt-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
         {games.map((g) => (
           <div
             key={g.code}
-            className="relative w-[78vw] max-w-[19rem] shrink-0 md:w-auto md:max-w-none"
+            // One game takes the whole width; more leave the next peeking in, to say the row scrolls.
+            className={cn('relative shrink-0 md:w-auto', games.length === 1 ? 'w-full' : 'w-[86%]')}
           >
             <MiniTable card={g} onOpen={() => open(g.code)} className="w-full" />
             {g.phase === 'finished' && (

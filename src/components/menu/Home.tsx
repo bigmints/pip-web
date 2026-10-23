@@ -178,7 +178,7 @@ export function Home() {
       <div className="flex flex-1 flex-col gap-4 pb-2">
         {/* Slow games you are in, your move first. Above everything else
             because a friend is waiting on it. Nothing at all until you have one. */}
-        {hydrated && <YourGames className="mb-2" />}
+        {hydrated && <YourGames />}
 
         {/* The spine. Everything below this pair is optional and reads as
             optional, which is the whole point of the rearrangement (Will,
