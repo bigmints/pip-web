@@ -180,6 +180,14 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 - **Cards:** `PlayingCard` (face, sizes `sm|md|lg`), `DealtCard` (animated), `CardBack`
   (customizable face-down). Ten renders as "10" though the engine uses `T`.
 
+### The table's keyboard
+
+On desktop the action bar takes **F** fold, **C** call/check, **R** the sizer (never a bet
+by itself), **Space**/**X** check (never a call), and in the sizer **1–4** and **Enter**;
+**?** lists them. Desktop is one media query on the pointers, not the width, so phones,
+tablets and touchscreen laptops get none of it. The letters use the drills' `KeyBadge`;
+no hint lines. Logic in `lib/tableKeys.ts`.
+
 ## Components inventory
 
 - Menu: `Home`, `VenueArt` (image with SVG fallback).
@@ -188,8 +196,8 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   `ChipsDialog` (award collection), `StatsDialog` (lifetime stats + the Roll graph).
 - Settings: `SettingsDialog` (card-back picker + profile backup/restore).
 - Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max),
-  `HandHistoryDialog` (last-hand timeline).
-- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`,
+  `table/keys` (the keyboard and its list), `HandHistoryDialog` (last-hand timeline).
+- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`, `KeyBadge`,
   `RollGraph` (hand-rolled smoothed SVG area chart; its `LineGraph` core also draws the
   drill rating over spots answered, and the report's sparklines via `profile/DrillRating`), `ThemeToggle`,
   shadcn `ui/button`, `ui/dialog`.
