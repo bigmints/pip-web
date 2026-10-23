@@ -350,12 +350,17 @@ function Hero({ price, multiplayer }: { price: ShownPrice; multiplayer: boolean 
             </a>
           )}
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-6xl">
-            Get better at poker.{' '}
-            <span className="block text-muted-foreground">And see it working.</span>
+            {/* Hosting leads because it is the locked feature people tap most,
+                and the second line is the part a host is buying: one
+                membership seats the whole table. */}
+            {multiplayer ? 'Host the game.' : 'Get better at poker.'}{' '}
+            <span className="block text-muted-foreground">
+              {multiplayer ? 'Your friends join free.' : 'And find out what is costing you.'}
+            </span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
             {multiplayer &&
-              'Multiplayer: open a room, send your friends the code, and play with your camera in your seat. '}
+              'Open a room, send your friends the code, and play with your camera in your seat. '}
             {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
             have played and names what is costing you chips, in big blinds, with the hands it
             happened in. Every session back on the table, hand by hand. Plus the side tables, the
