@@ -55,6 +55,17 @@ export const CUSTOM_BUY_INS = VENUES.map((v) => v.buyIn)
 export const CUSTOM_DEPTHS = [1, 2, 3] as const
 /** How many hands a blind level lasts. Lower is faster. */
 export const CUSTOM_SPEEDS = [2, 5, 9, 14] as const
+/**
+ * Each speed, in words. Read by the builder and by the answer to a tap on its
+ * padlock (`TappedCustomTable`); the builder falls back to the number for a
+ * speed added later.
+ */
+export const CUSTOM_SPEED_WORDS: Record<number, string> = {
+  2: 'Hyper',
+  5: 'Fast',
+  9: 'Standard',
+  14: 'Slow',
+}
 
 export interface CustomTableSpec {
   seats: number
