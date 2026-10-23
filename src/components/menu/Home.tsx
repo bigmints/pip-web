@@ -21,11 +21,14 @@ import { ChallengeCard } from './ChallengeCard'
 import { CategoryCard } from './CategoryCard'
 import { LadderStrip } from './LadderStrip'
 import { NextUpCard } from './NextUpCard'
+import { ResumeTableCard } from './ResumeTableCard'
 import { QuickPlayCard } from './QuickPlayCard'
 import { YourGames } from './YourGames'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor } from '@/config/venues'
+import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor, venueById } from '@/config/venues'
+import { CUSTOM_VENUE_ID, customVenue } from '@/config/customTable'
+import { loadTableSnapshot } from '@/store/game'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
 import { roomsConfigured } from '@/lib/multiplayer/client'
@@ -77,6 +80,18 @@ export function Home() {
   // card because the shelf below has to know what won the hero slot — whatever
   // did is left off it, so the same face never appears twice down the page.
   const pick = sitDown ? nextUp(sitDown, deviceId()) : null
+  // A table this device left unfinished leads instead: its buy-in is out of
+  // the Roll, and reopening the app lands here rather than on the table
+  // (ResumeTableCard). Resolved the way PlayClient resolves the route.
+  const customTable = useProfile((s) => s.customTable)
+  const openTable = hydrated ? loadTableSnapshot() : null
+  const openVenue = !openTable
+    ? undefined
+    : openTable.venueId === CUSTOM_VENUE_ID
+      ? customTable
+        ? customVenue(customTable)
+        : undefined
+      : venueById(openTable.venueId)
   // Somewhere to dip into for ten minutes, when the Roll can stand one.
   const quick = sitDown ? quickPlay(sitDown, deviceId()) : null
   // Who is waiting, derived here for the same reason.
@@ -182,10 +197,17 @@ export function Home() {
               whenever there is no honest stake for it, and the hero simply
               takes the width back. */}
           <div className="flex flex-col gap-3 md:flex-row md:gap-4">
-            {hydrated && pick && (
+            {openTable && openVenue ? (
               <div className="min-w-0 flex-1">
-                <NextUpCard pick={pick} delay={0.05} />
+                <ResumeTableCard venue={openVenue} snapshot={openTable} delay={0.05} />
               </div>
+            ) : (
+              hydrated &&
+              pick && (
+                <div className="min-w-0 flex-1">
+                  <NextUpCard pick={pick} delay={0.05} />
+                </div>
+              )
             )}
             {hydrated && quick && (
               <div className="min-w-0 md:w-[38%]">
