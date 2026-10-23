@@ -9,7 +9,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Mic, Users, Video, Zap } from 'lucide-react'
+import { Hourglass, Mic, UserPlus, Users, Video, Zap } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CAST } from '@/config/cast'
 import type { MembershipFeature } from '@/config/membership'
@@ -39,6 +39,16 @@ const POINTS = [
     icon: Users,
     title: 'Friends join free',
     body: 'Only the host needs the membership. Everyone else needs a free Pip account and the code.',
+  },
+  {
+    icon: Hourglass,
+    title: 'A slow game',
+    body: 'An hour to a day for each move, and the clock stops in each player’s quiet hours. For friends who are never free at once.',
+  },
+  {
+    icon: UserPlus,
+    title: 'Short a player',
+    body: 'Sit one of the regulars in the empty chair. Live rooms only; a slow game is just friends.',
   },
   {
     icon: Zap,
