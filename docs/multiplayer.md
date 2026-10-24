@@ -10,7 +10,7 @@ There are two ways to a table with people at it:
 
 - **Private rooms.** A member opens a room at a ladder stake and gets a six-character code.
   Friends join with the code and a free account. The host can add regulars from the cast to
-  any empty chair, then deals. **Camera and mic are available here only.**
+  any empty chair, then deals. **Camera and mic are available here and in slow games.**
 - **Quick match.** A member picks a ladder stake and joins that stake's queue. A table
   starts the moment it is full. If it hasn't filled once the first person in line has waited
   30 seconds, AI players take the empty chairs. There is no camera or mic.
@@ -147,7 +147,8 @@ The engine is imported unchanged. What runs on the server is what is in the publ
 - **`room.ts`, the `PokerRoom` Durable Object** (one per code):
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
-  - it relays WebRTC signalling and camera/mic state, in private rooms only.
+  - it relays WebRTC signalling and camera/mic state, in private rooms and slow games
+    (`hosted()`: the tables friends share by code), never at quick match.
 
   It uses the Hibernation API. Memory is lost when the object sleeps, so the state is read back
   from storage and each socket carries who it is in its attachment.
@@ -183,8 +184,10 @@ Timings live in `room.ts`:
 
 ## Camera and microphone
 
-Camera and mic are for **private rooms only**, and both are **off until the player taps
-them**. That tap is also what lets iOS and Android play the other seats' audio.
+Camera and mic are for **private rooms and slow games** (the rooms friends share by code,
+`hosted()`), never quick match, and both are **off until the player taps them**. At a slow game
+they connect whoever has the table open at the same moment, so a stretch played live can be
+played face to face (added 2026-10-24). That tap is also what lets iOS and Android play the other seats' audio.
 
 - **How they connect** (`store/media.ts`):
   - every pair of players gets a direct peer-to-peer connection, using the "perfect
@@ -207,7 +210,7 @@ them**. That tap is also what lets iOS and Android play the other seats' audio.
 
 ## Reporting, blocking and muting (2026-10-11)
 
-For App Store guideline 1.2, and because people deserve them. Tap any person at a private
+For App Store guideline 1.2, and because people deserve them. Tap any person at a private or slow
 table, or their face in the lobby, for `PlayerSheet`:
 
 - **Mute** and **Hide their camera**: for you only, in `store/media.ts`; nothing is sent.
