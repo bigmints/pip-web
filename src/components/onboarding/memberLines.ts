@@ -22,6 +22,7 @@ export const MEMBER_LINES: readonly MemberLine[] = [
   { text: 'Every side table', ids: ['side-tables', 'rooms'] },
   { text: 'All of Webb’s lessons and drills', ids: ['lessons', 'drills'] },
   { text: 'Session review and a report on your own play', ids: ['review', 'coaching'] },
+  { text: 'A face you build feature by feature', ids: ['avatar'] },
 ]
 
 /** The lines this build may show: every feature behind a line is sellable. */

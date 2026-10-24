@@ -379,6 +379,16 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     shipped: true,
   },
   {
+    // Avatars built part by part (pip-web#259, 2026-10-23). Its own entry, not
+    // a clause in the shelf's blurb, so the page can show it and a locked
+    // Customise tap lands on it. No `place`: it lives in Edit player, a dialog.
+    id: 'avatar',
+    title: 'Build your own face',
+    blurb:
+      'Shuffle gives everybody a face. Members choose theirs one feature at a time — hair or a hat, eyes, brows, mouth, nose, glasses, beard, top and what your hands are doing — with the face drawn big while you pick. It sits with you at every table, in rooms with friends and on every hand you share.',
+    shipped: true,
+  },
+  {
     // Was "Member card backs", described as "one per member room, in that
     // room's colour" — which named rooms that stopped existing when they
     // collapsed into Deep Stack, the same way the `rooms` entry above did. The
@@ -386,7 +396,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'cosmetics',
     title: 'The members’ shelf',
     blurb:
-      'Card backs that wear a real foil, an avatar you build feature by feature, a gilt ring round it, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
+      'Card backs that wear a real foil, a gilt ring round your avatar, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
     shipped: true,
   },
 ]

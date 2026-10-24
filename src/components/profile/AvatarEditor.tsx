@@ -105,7 +105,7 @@ export function AvatarEditor({
         <p className="text-center text-sm text-muted-foreground">
           Picking each feature comes with the membership.{' '}
           <Link
-            href={membershipFor('cosmetics')}
+            href={membershipFor('avatar')}
             onClick={() => sound.play('tap')}
             className="font-medium text-foreground underline underline-offset-2"
           >

@@ -148,8 +148,10 @@ know the one).
 
 ## Follow-ups (discussed, deliberately not in v1)
 
-- Avatar gear (hats, glasses) — needs DiceBear option work in the creator. The
-  ring shipped instead (2026-09-21) because it needed none of that.
+- ~~Avatar gear (hats, glasses)~~ — shipped another way (2026-10-23): members pick
+  every part of the face, hats and glasses included, in the Customise dialog
+  (pip-web#259). It is the membership's, not a chip item — see
+  [membership.md](./membership.md#building-your-own-face).
 - Chip colourways — the bets on the felt are text, not discs, so this is a
   rendering feature wearing a cosmetic's clothes. Not a config entry.
 - Felt *patterns* — ruled out rather than pending: the finish is "flat, no

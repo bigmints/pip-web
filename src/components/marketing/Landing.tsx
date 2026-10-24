@@ -888,7 +888,7 @@ function Membership() {
         <SectionHeading
           eyebrow="Free, and the membership"
           title="The game is free. The membership adds to it."
-          body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, and reports on your play.`}
+          body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, reports on your play${features.some((f) => f.id === 'avatar') ? ', and a face you build feature by feature' : ''}.`}
         />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2">

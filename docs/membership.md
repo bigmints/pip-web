@@ -23,7 +23,7 @@ got?* and *Which hand wins?* — every written guide, the odds calculator, and s
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
 Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, eight more
 drill kinds (including the practice packs *Open or fold*, *Calling the river*, *Bet or check* and *Shove or fold*) plus the play-it-out mode, the across-sessions play report, the session review,
-spectating after you bust, **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), the members' shelf, and **multiplayer**: opening a private room for friends (camera and mic included) and quick match. Joining a member's room with a code needs only a free account (see below and [multiplayer.md](./multiplayer.md)).
+spectating after you bust, **building your avatar feature by feature** (below), **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), the members' shelf, and **multiplayer**: opening a private room for friends (camera and mic included) and quick match. Joining a member's room with a code needs only a free account (see below and [multiplayer.md](./multiplayer.md)).
 
 **The free half of the drills is where a beginner learns to read a hand, and the paid half
 is where they learn to price one** (Will, 2026-09-21). That is the line the two sides fall
@@ -320,6 +320,24 @@ link, *See your full report*, to `/membership?for=coaching`. The line is the rep
 leak (`lib/review/teaser.ts` over `deepRead`), never written for the card, and absent when the
 report has nothing to say. The test names `RunRecap.tsx` as the only file allowed, and checks
 it still takes `member` from the table rather than asking.
+
+## Building your own face
+
+**Everybody gets a face; members choose theirs one feature at a time** (pip-web#259,
+2026-10-23). Edit player has Shuffle for everyone and a **Customise** button beside it.
+For a member it opens `AvatarCustomiser`: hair (or a hat), eyes, brows, mouth, nose,
+glasses, beard, top and hands — the list is `AVATAR_PARTS` in `lib/avatarParts.ts`. For
+anyone else the button shows a lock and a link to `membershipFor('avatar')`, which opens
+`/membership` on its own card (the `avatar` entry in `MEMBERSHIP_FEATURES`).
+
+- **Nothing is taken from a non-member.** A shuffled face is unchanged, and an
+  `AvatarSpec` with no `features` draws exactly as it did before this existed.
+- **A lapsed member keeps the face they built.** The picks are stored on the spec and
+  keep drawing; only the Customise picker locks again. Same rule as anything chips
+  bought: the membership never repossesses a look.
+- **It is a look, not an edge.** Picked parts ride through rooms (checked by the
+  protocol with `parseFeatures`), review links, sync and the QR transfer, and change
+  nothing about a hand.
 
 ## The cosmetics denominator
 
