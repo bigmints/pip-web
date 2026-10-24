@@ -25,6 +25,7 @@ import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { normaliseRoomCode } from '@/lib/multiplayer/code'
 import { devSignedIn, peekRoom, roomsConfigured, type RoomPeek } from '@/lib/multiplayer/client'
 import type { ServerError } from '@/lib/multiplayer/protocol'
+import { hosted } from '@/lib/multiplayer/room'
 import { appSupports, inApp } from '@/lib/nativeApp'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
@@ -99,7 +100,8 @@ export function RoomScreen() {
   }
   if (!view) return <Waiting label="Pulling up a chair" />
 
-  const live = view.kind === 'private' && mediaSupported() && (!inApp() || appSupports('media'))
+  // Camera and mic at the tables friends share by code: a private room or a slow game.
+  const live = hosted(view) && mediaSupported() && (!inApp() || appSupports('media'))
 
   return (
     <>

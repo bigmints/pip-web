@@ -33,6 +33,7 @@ import {
   setPre,
   setQuiet,
   start,
+  hosted,
   tick,
   type Joiner,
   type Result,
@@ -371,7 +372,7 @@ export class PokerRoom extends DurableObject<Env> {
       ws.serializeAttachment({ userId, playerId, media: OFF } satisfies Attachment)
       await this.save(result.state)
       this.broadcast(result.state)
-      if (current.kind === 'private') {
+      if (hosted(current)) {
         this.broadcastMedia()
         const iceServers = await this.iceServers()
         this.send(ws, { t: 'ice', iceServers })
@@ -420,9 +421,10 @@ export class PokerRoom extends DurableObject<Env> {
         return
       }
       case 'media': {
-        // Camera and mic are for friends who invited each other, never for a
-        // table of strangers the matchmaker put together.
-        if (room.kind !== 'private') return this.fail(ws, 'illegal')
+        // Camera and mic are for friends who invited each other (a private
+        // room or a slow game), never for a table of strangers the matchmaker
+        // put together.
+        if (!hosted(room)) return this.fail(ws, 'illegal')
         ws.serializeAttachment({ ...a, media: msg.media } satisfies Attachment)
         return this.broadcastMedia()
       }
@@ -451,7 +453,7 @@ export class PokerRoom extends DurableObject<Env> {
         return this.send(ws, { t: 'reported' })
       }
       case 'signal': {
-        if (room.kind !== 'private' || !a.playerId) return this.fail(ws, 'illegal')
+        if (!hosted(room) || !a.playerId) return this.fail(ws, 'illegal')
         for (const other of this.ctx.getWebSockets()) {
           const o = other.deserializeAttachment() as Attachment
           if (o.userId && blockedBetween(room, userId, o.userId)) continue
@@ -485,7 +487,7 @@ export class PokerRoom extends DurableObject<Env> {
     const next = disconnect(room, a.userId, Date.now())
     await this.save(next, ws)
     this.broadcast(next)
-    if (room.kind === 'private') this.broadcastMedia()
+    if (hosted(room)) this.broadcastMedia()
   }
 
   async alarm(): Promise<void> {
