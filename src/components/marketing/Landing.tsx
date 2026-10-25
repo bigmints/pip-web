@@ -37,7 +37,6 @@ import { PlayButton } from './PlayButton'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
-import { ACCOUNT_OFFER } from '@/config/account'
 import { providerNames, syncConfigured } from '@/lib/sync/client'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
@@ -193,9 +192,6 @@ function Hero() {
             </a>
           </div>
 
-          <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
-            Play money only. {ACCOUNT_OFFER}
-          </p>
           <SignInLink />
           <HandsPlayed />
         </div>
@@ -1007,7 +1003,7 @@ function SignInLink() {
   // A build with no accounts behind it has nothing to sign in to.
   if (!syncConfigured() || (hydrated && created)) return null
   return (
-    <p style={riseDelay(4)} className="rise-in mt-2 text-sm text-muted-foreground">
+    <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
       Already have an account?{' '}
       <Link
         href="/game?account=signin"
