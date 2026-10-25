@@ -13,6 +13,8 @@
 //   POST /notify/devices/remove
 //   GET  /notify/key          the web push (VAPID) public key
 //   GET|POST /notify/off      the "stop these emails" link (signed, no token)
+//   GET  /hands               the hands-played count (the landing page reads it)
+//   POST /hands               the game's hands against the cast, a batch at a time
 //
 // Every socket and every create is refused from an origin that is not the
 // site's (ALLOWED_ORIGINS), so a page somewhere else cannot drive a table with
@@ -30,10 +32,12 @@ import { blocksOf } from './safety'
 import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
 import { offLinkValid } from './notify'
 import type { InitBody } from './room'
+import { tallyStub } from './tally'
 
 export { PokerRoom } from './room'
 export { Matchmaker } from './matchmaker'
 export { Player } from './player'
+export { Tally } from './tally'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -46,6 +50,26 @@ export default {
     // src/lib/poker or src/lib/multiplayer after it is not on the tables yet.
     if (parts[0] === 'health') {
       return json({ ok: true, uploaded: env.VERSION?.timestamp ?? null }, 200, cors)
+    }
+
+    if (parts[0] === 'hands' && parts.length === 1) {
+      if (request.method === 'GET') {
+        const res = await tallyStub(env).fetch('https://tally/read')
+        return json(await res.json(), 200, { ...cors, 'Cache-Control': 'public, max-age=300' })
+      }
+      if (request.method === 'POST') {
+        if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)
+        const body = (await request.json().catch(() => null)) as { n?: unknown } | null
+        const res = await tallyStub(env).fetch('https://tally/add', {
+          method: 'POST',
+          body: JSON.stringify({
+            bucket: 'ai',
+            n: body?.n,
+            ip: request.headers.get('CF-Connecting-IP') ?? '',
+          }),
+        })
+        return new Response(null, { status: res.ok ? 204 : res.status, headers: cors })
+      }
     }
 
     if (parts[0] === 'rooms' && parts.length === 1 && request.method === 'POST') {

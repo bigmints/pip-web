@@ -6,6 +6,8 @@ export interface Env {
   QUEUES: DurableObjectNamespace
   /** One per account: their slow games, notification prefs and devices. */
   PLAYERS: DurableObjectNamespace
+  /** The hands-played count on the landing page (`tally.ts`). */
+  TALLY: DurableObjectNamespace
   /** Where this Worker is reached from outside, for links in emails. */
   PUBLIC_URL?: string
   /** Comma-separated origins allowed to open a socket or create a room. */

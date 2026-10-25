@@ -144,6 +144,10 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   - `GET /rooms/:code` returns a peek for the join screen.
   - `GET /rooms/:code/ws` is a table's socket.
   - `GET /queue/:venueId/ws` is a stake's queue.
+  - `GET /hands` is the hands-played count the landing page shows (its function reads it
+    server-side and caches it for five minutes). `POST /hands` is the game reporting its hands
+    against the cast, ten at a time, anonymously: capped at 20 a report, one report a minute
+    per address.
 - **`room.ts`, the `PokerRoom` Durable Object** (one per code):
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
@@ -161,6 +165,11 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   - it opens a `PokerRoom` with the matched accounts reserved, and sends them its code;
   - its changes run inside `blockConcurrencyWhile`, because opening a room is a request to
     another object.
+- **`tally.ts`, the `Tally` Durable Object** (one, named `all`): the hands-played count, as
+  `ai` and `people`, on top of `BACKFILL` in `src/lib/handCount.ts` (what was played before it
+  existed, partly estimated; the comment says how). A room adds each hand it deals, by how many
+  people were really playing it: a person who has left, or has run out of time twice in a row,
+  does not count, so a table everybody walked away from (it deals on by itself) adds nothing.
 - **`auth.ts`:**
   - `identify(token)` asks Supabase `/auth/v1/user`, once per socket;
   - `isMember` reads `memberships` with the service role and decides with the same

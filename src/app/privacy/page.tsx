@@ -33,8 +33,9 @@ export default function PrivacyPage() {
         <p>
           Pip has an optional account. It carries your progress to another device, and it is what a{' '}
           <A href="/membership">membership</A> belongs to if you take one. It is off unless you turn
-          it on, in Settings, under Account. Until then Pip makes no request to us at all, holds no
-          identity for you, and there is no row anywhere with your name on it.
+          it on, in Settings, under Account. Until then the only thing Pip sends us is a count of
+          hands played (see What we count), it holds no identity for you, and there is no row
+          anywhere with your name on it.
         </p>
         <p>
           Turn it on and we store two things:{' '}
@@ -170,6 +171,13 @@ export default function PrivacyPage() {
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t
           keep our own copy beyond that.
+        </p>
+        <p>
+          The home page says how many hands have been played on Pip. For that, every ten hands the
+          game sends our server one number: how many hands it is reporting. No id, no profile, no
+          name, nothing about the hands themselves. Your internet address is held in memory for a
+          minute so one place cannot send the number over and over, and it is not stored.
+          Multiplayer tables count their own hands on our server.
         </p>
       </Section>
 

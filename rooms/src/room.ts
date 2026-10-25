@@ -18,6 +18,7 @@ import { DurableObject } from 'cloudflare:workers'
 import {
   act,
   addBots,
+  AWAY_AFTER_TIMEOUTS,
   block,
   blockedBetween,
   configure,
@@ -55,6 +56,8 @@ import { quietOf, type PlayPrefs } from '@/lib/multiplayer/notices'
 import { MAX_SLOW_GAMES, type Quiet } from '@/lib/multiplayer/slow'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
+import { countRoomHands } from './tally'
+import { roomBucket } from '@/lib/handCount'
 import { cryptoRng } from '@/lib/cryptoRng'
 import { json, playerStub, type Env } from './env'
 
@@ -108,7 +111,23 @@ export class PokerRoom extends DurableObject<Env> {
   }
 
   private async save(next: RoomState, leaving?: WebSocket): Promise<void> {
+    const before = this.room
     this.room = next
+    // A new hand dealt: add it to the landing page's count, by who it was
+    // dealt to. Only people actually playing: a table everybody has walked
+    // away from deals on by itself on the away clock, thousands of hands
+    // nobody played. `connected` cannot tell (it stays true when a server
+    // restart drops the socket, and a slow game's players are never on one),
+    // but turns run out in a row can. Not awaited — a count never holds up a table.
+    if (before && next.handIndex > before.handIndex) {
+      const there = next.players.filter(
+        (p) => !p.bot && !p.left && p.place === null && p.timeouts < AWAY_AFTER_TIMEOUTS,
+      )
+      const bucket = roomBucket(there.length)
+      if (bucket) {
+        this.ctx.waitUntil(countRoomHands(this.env, bucket, next.handIndex - before.handIndex))
+      }
+    }
     if (next.kind === 'slow') await this.index(next, leaving)
     if (next.phase === 'closed') {
       for (const ws of this.ctx.getWebSockets()) ws.close(4004, 'closed')

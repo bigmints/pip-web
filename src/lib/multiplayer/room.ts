@@ -84,7 +84,7 @@ export const QUICK_START_MS = 15_000
 export const IDLE_EXPIRE_MS = 2 * 60 * 60 * 1000
 export const FINISHED_EXPIRE_MS = 30 * 60 * 1000
 /** Timeouts in a row before a player is treated as away. */
-const AWAY_AFTER_TIMEOUTS = 2
+export const AWAY_AFTER_TIMEOUTS = 2
 /** A move set ahead of time is made this long after the turn reaches it, so it can be seen. */
 export const PRE_MS = 350
 /** A slow game nobody has started is cleared after three days; a finished one shows for a week. */

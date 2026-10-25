@@ -69,6 +69,7 @@ import {
   type CountedRng,
 } from '@/lib/daily'
 import { formatChips } from '@/lib/useMoney'
+import { countHand } from '@/lib/handTally'
 import { useProfile } from './profile'
 
 export interface SeatMeta {
@@ -833,6 +834,8 @@ export const useGame = create<GameState>((set, get) => {
       biggestPot: heroWon ? pot : 0,
       showdownsWon: heroWon && result?.showdown ? 1 : 0,
     })
+    // The landing page's hands-played count. Anonymous; see lib/handTally.
+    countHand()
 
     // Flush the hero's tendencies for this hand — the session counter is
     // cumulative, so push only the delta since the last flush.

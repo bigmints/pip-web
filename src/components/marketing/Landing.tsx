@@ -197,6 +197,7 @@ function Hero() {
             Play money only. {ACCOUNT_OFFER}
           </p>
           <SignInLink />
+          <HandsPlayed />
         </div>
 
         {/* the table showpiece — a real hand, not a mock */}
@@ -1016,6 +1017,27 @@ function SignInLink() {
         Sign in
       </Link>
     </p>
+  )
+}
+
+/**
+ * How many hands have been played on Pip, against the AI and against people.
+ * Empty and hidden in the static page: the landing page's function
+ * (functions/index.ts) fills it in on the way out, from the room server's count,
+ * so a visitor's browser never asks for it. If the count cannot be had, the
+ * line stays hidden. `dangerouslySetInnerHTML` is what keeps React's hydration
+ * off the filled-in text.
+ */
+function HandsPlayed() {
+  return (
+    <p
+      data-hands
+      hidden
+      suppressHydrationWarning
+      className="mt-6 text-sm text-muted-foreground tabular-nums"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: empty; filled server-side
+      dangerouslySetInnerHTML={{ __html: '' }}
+    />
   )
 }
 
