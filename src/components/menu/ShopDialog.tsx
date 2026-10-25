@@ -39,7 +39,7 @@ import { accentFromSwatch, type AvatarSpec } from '@/lib/avatar'
 import { useProfile } from '@/store/profile'
 import { useEntitlement } from '@/store/entitlement'
 import { characterById } from '@/config/cast'
-import { SHOP_BACKS, cardBackById } from '@/config/cardBacks'
+import { SHOP_BACKS, cardBackById, type CardBackDesign } from '@/config/cardBacks'
 import { avatarRingById, dealerButtonById, soundPackById, type SoundPack } from '@/config/cosmetics'
 import { venueById } from '@/config/venues'
 import {
@@ -495,28 +495,8 @@ function StageArt({ item }: { item: ShopItem }) {
   const profile = useProfile()
   const avatar = profile.avatar ?? FALLBACK_AVATAR
   switch (item.kind) {
-    case 'back': {
-      const design = cardBackById(item.id)
-      return (
-        <div className="flex scale-75 sm:scale-100 md:scale-125">
-          <motion.div
-            initial={{ rotate: 0, x: 14 }}
-            animate={{ rotate: -9, x: 0 }}
-            transition={SPRING}
-          >
-            <CardBack design={design} size="lg" />
-          </motion.div>
-          <motion.div
-            className="-ml-8"
-            initial={{ rotate: 0, x: -14 }}
-            animate={{ rotate: 9, x: 0 }}
-            transition={SPRING}
-          >
-            <CardBack design={design} size="lg" />
-          </motion.div>
-        </div>
-      )
-    }
+    case 'back':
+      return <BackPair design={cardBackById(item.id)} />
     case 'face':
       return (
         <div className="flex gap-1.5">
@@ -533,19 +513,10 @@ function StageArt({ item }: { item: ShopItem }) {
           ))}
         </div>
       )
-    case 'finish': {
-      const back = cardBackById(profile.cardBack)
-      return (
-        <div className="relative flex translate-y-3">
-          <CardBack design={back} size="md" className="-rotate-6" />
-          <CardBack design={back} size="md" className="-ml-6 rotate-6" />
-          <DealerDisc
-            id={profile.dealerButton}
-            className="absolute -right-8 bottom-0 size-6 text-2xs"
-          />
-        </div>
-      )
-    }
+    case 'finish':
+      // Your own back on the cloth, laid the way the back preview lays it, so
+      // a felt can be picked to go with it.
+      return <BackPair design={cardBackById(profile.cardBack)} />
     case 'ring': {
       const ring = avatarRingById(item.id)
       return (
@@ -599,13 +570,32 @@ function StageArt({ item }: { item: ShopItem }) {
   }
 }
 
+/** Two backs fanned on the felt — the card back preview, and the finish's. */
+function BackPair({ design }: { design: CardBackDesign }) {
+  return (
+    <div className="flex scale-75 sm:scale-100 md:scale-125">
+      <motion.div initial={{ rotate: 0, x: 14 }} animate={{ rotate: -9, x: 0 }} transition={SPRING}>
+        <CardBack design={design} size="lg" />
+      </motion.div>
+      <motion.div
+        className="-ml-8"
+        initial={{ rotate: 0, x: -14 }}
+        animate={{ rotate: 9, x: 0 }}
+        transition={SPRING}
+      >
+        <CardBack design={design} size="lg" />
+      </motion.div>
+    </div>
+  )
+}
+
 function SoundStage({ item }: { item: ShopItem }) {
   const pack = soundPackById(item.id)
   const equipped = useProfile((s) => s.soundPack)
   const [beat, setBeat] = useState(0)
   return (
-    <div className="flex flex-col items-center gap-4">
-      <SoundBars pack={pack} className="h-16 gap-1.5 md:h-20" bar="w-3" beat={beat} />
+    <div className="flex flex-col items-center gap-3 pb-2 sm:gap-4 sm:pb-0">
+      <SoundBars pack={pack} className="h-12 gap-1.5 sm:h-16 md:h-20" bar="w-3" beat={beat} />
       <button
         type="button"
         onClick={() => {

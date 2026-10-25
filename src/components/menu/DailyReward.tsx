@@ -129,11 +129,13 @@ function RewardCard({ onOpen }: { onOpen: () => void }) {
             <Flame className="size-3.5 fill-streak/30" aria-hidden />
             Day {reward.streakDay} reward
           </span>
-          <span className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-xl font-semibold tracking-tight tabular-nums">
-              {money(reward.chips)}
+          <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+            <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span className="text-xl font-semibold tracking-tight tabular-nums">
+                {money(reward.chips)}
+              </span>
+              <span className="text-sm text-muted-foreground">chips</span>
             </span>
-            <span className="text-sm text-muted-foreground">chips</span>
             {member && <DoubleBadge />}
           </span>
           {reward.unlock ? (
@@ -191,7 +193,7 @@ function WeekDots({ day }: { day: number }) {
 
 function DoubleBadge() {
   return (
-    <span className="rounded-full bg-pip/20 px-1.5 py-0.5 text-2xs font-bold text-pip">
+    <span className="shrink-0 rounded-full bg-pip/20 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-pip">
       ×2 member
     </span>
   )
