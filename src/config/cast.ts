@@ -704,6 +704,22 @@ export const CAST: readonly Character[] = [
       bust: ['Winnie packs the wool away, unbothered.', 'Winnie leaves with a finished sleeve.'],
     },
   },
+  {
+    // The streak's regular (Will, 2026-10-25): you meet her only at the
+    // Regulars' Table, which a 21-day streak opens. Pinned, so she never
+    // challenges and is never a scalp — she is the reward, not a target.
+    id: 'maud',
+    name: 'Maud',
+    bio: 'Has played this table every night for forty years. Remembers everyone who comes back.',
+    avatar: av('maud', 'ffd5dc'),
+    bands: ['mid'],
+    only: ['regulars'],
+    lines: {
+      seat: ['“There you are,” says Maud. “Same seat.”', 'Maud has already ordered you a tea.'],
+      win: ['“Forty years, love,” says Maud, stacking.', 'Maud wins and pats the felt.'],
+      bust: ['“Tomorrow, then,” says Maud.', 'Maud waves you off. “Don’t be a stranger.”'],
+    },
+  },
 ] as const
 
 /** Band by buy-in, so new venues are covered automatically. */

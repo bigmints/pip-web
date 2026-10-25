@@ -30,7 +30,7 @@ export interface CardBackDesign {
    * and it stays yours afterwards (docs/shop.md rule 3, rewritten 2026-09-21).
    * Style, never edge, whichever it is.
    */
-  unlock?: { venueWin?: string; price?: number; membersOnly?: true }
+  unlock?: { venueWin?: string; price?: number; membersOnly?: true; streakDay?: number }
 }
 
 // Slimmed to five (2026-07-18): the free set is a tight, distinct starter spread
@@ -306,11 +306,33 @@ export const MEMBER_SHOP_BACKS: readonly CardBackDesign[] = [
  * back still just says what it is (docs/membership.md, "what a gated surface
  * looks like"). If it ever grows a button, it has stopped being that.
  */
+/**
+ * Backs the daily reward hands over on a day of a streak (lib/dailyReward).
+ * Earned, never sold, and kept in `owned` once earned.
+ */
+export const STREAK_BACKS: readonly CardBackDesign[] = [
+  {
+    id: 'back-kindling',
+    name: 'Kindling',
+    color: '#B4512C',
+    pattern: 'diamonds',
+    unlock: { streakDay: 14 },
+  },
+  {
+    id: 'back-phoenix',
+    name: 'Phoenix',
+    color: '#C2452D',
+    pattern: 'rings',
+    unlock: { streakDay: 200 },
+  },
+]
+
 export const ALL_CARD_BACKS: readonly CardBackDesign[] = [
   ...MEMBER_BACKS,
   ...MEMBER_SHOP_BACKS,
   ...CARD_BACKS,
   ...EARNED_BACKS,
+  ...STREAK_BACKS,
   ...SHOP_BACKS,
 ]
 
@@ -345,6 +367,7 @@ export function cardBackUnlocked(
   member = false,
 ): boolean {
   if (!design.unlock) return true
+  if (design.unlock.streakDay !== undefined) return owned.has(design.id)
   if (design.unlock.price !== undefined) return owned.has(design.id)
   if (design.unlock.membersOnly) return member
   return design.unlock.venueWin !== undefined && wonVenues.has(design.unlock.venueWin)

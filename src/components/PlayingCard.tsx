@@ -93,16 +93,20 @@ export function PlayingCard({
   card,
   size = 'md',
   faceDown = false,
+  face,
   className,
 }: {
   card?: Card | null
   size?: CardSize
   faceDown?: boolean
+  /** Draw in this deck face instead of the equipped one (the Chip Shop's preview). */
+  face?: string
   className?: string
 }) {
   const s = SIZES[size]
   const hidden = faceDown || !card
-  const deckFace = useProfile((st) => st.deckFace)
+  const equippedFace = useProfile((st) => st.deckFace)
+  const deckFace = face ?? equippedFace
   // The High-Contrast deck: same colours, ink like it means it.
   const contrast = deckFace === 'face-contrast'
   // Big Index (free) and Minimal (the membership's) are weight-and-size

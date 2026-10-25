@@ -298,7 +298,7 @@ export function BlackjackTable({
             </div>
           ) : broke ? (
             <p className="flex h-[56px] items-center justify-center text-center text-sm text-muted-foreground">
-              That is the stack gone. There is no top-up here and there never will be.
+              That is the stack gone. There is no top-up at this table.
             </p>
           ) : (
             // The flex row is not decoration: `Action` is `flex-1`, copied from

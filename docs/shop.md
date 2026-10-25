@@ -4,6 +4,17 @@
 > backs in `src/config/cardBacks.ts`; purchases persist in the profile
 > (`owned` / `deckFace` / `tableFinish`, `PERSIST_VERSION` 10); the shop opens
 > from the home screen (`ShopDialog`), with Pearl behind the counter.
+>
+> **Layout (2026-10-25):** a roomy picker like the avatar Customise
+> (`ROOMY_DIALOG` + `PillTabs` in `components/ui/picker.tsx`). The selected item
+> is previewed big and in use on a stretch of table; the shelves are tabs over a
+> wrapping grid; one action button (Buy, Use, Take off, or why not). A buy takes
+> two taps, and a bought item goes straight on. What the shop says about an item
+> is `shopStatus` in `config/shop.ts`.
+>
+> **Streak items (2026-10-25):** five items carry `streakDay` and are earned by the daily
+> reward (docs/daily-reward.md), never sold. They sit on the shop's Streak tab, read
+> "Day 7" and so on until earned, and are held in `owned` once they are.
 
 ## The two rules (non-negotiable)
 

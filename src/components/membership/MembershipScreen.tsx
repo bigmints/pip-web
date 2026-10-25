@@ -28,6 +28,7 @@ import {
   ChevronRight,
   ChartSpline,
   Eye,
+  Flame,
   GraduationCap,
   Hand,
   Lock,
@@ -136,6 +137,7 @@ const PLAY: Record<string, Visual> = {
 
 /** The tools beside the game: an iOS settings-row icon each. */
 const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
+  'daily-reward': { icon: Flame, tint: '#FF8A3D' },
   lessons: { icon: GraduationCap, tint: '#3FA7B8' },
   drills: { icon: Target, tint: '#5B7FC7' },
   river: { icon: Spade, tint: '#C9873D' },

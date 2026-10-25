@@ -6,7 +6,13 @@
 
 import type { AwardDef } from '@/lib/awards'
 import { AVATAR_RINGS, DEALER_BUTTONS, SOUND_PACKS, type Cosmetic } from './cosmetics'
-import { MEMBER_BACKS, MEMBER_SHOP_BACKS, SHOP_BACKS, type CardBackDesign } from './cardBacks'
+import {
+  MEMBER_BACKS,
+  MEMBER_SHOP_BACKS,
+  SHOP_BACKS,
+  STREAK_BACKS,
+  type CardBackDesign,
+} from './cardBacks'
 import { membershipFor } from './membership'
 import { KITCHEN_TABLE, SIDE_TABLES, VENUES } from './venues'
 
@@ -34,6 +40,8 @@ export interface ShopItem {
    * the table on `Cosmetic` in config/cosmetics.ts — that is the whole economy.
    */
   membersOnly?: boolean
+  /** Earned on this day of a streak by the daily reward, never bought (lib/dailyReward). */
+  streakDay?: number
   /** Display accent (finishes, souvenirs). */
   swatch?: string
   /** Souvenirs render as chips (AwardChip) — the motif stamped in the centre. */
@@ -137,6 +145,15 @@ export const TABLE_FINISHES: readonly TableFinish[] = [
     swatch: '#5E3138',
   },
   {
+    id: 'finish-embers',
+    kind: 'finish',
+    name: 'Embers',
+    blurb: 'Sixty days in a row. The table has started to glow.',
+    price: 0,
+    streakDay: 60,
+    swatch: '#7A3322',
+  },
+  {
     id: 'finish-smoke',
     kind: 'finish',
     name: 'Smoke',
@@ -219,6 +236,27 @@ export const SOUVENIRS: readonly ShopItem[] = [
     swatch: '#CDAA3D',
     glyph: '♦',
   },
+  // The streak's last milestone: a hundred days, earned, never sold.
+  {
+    id: 'souvenir-hundred',
+    kind: 'souvenir',
+    name: 'The Hundred',
+    blurb: 'A hundred days in a row at the table.',
+    price: 0,
+    streakDay: 100,
+    swatch: '#E2683C',
+    glyph: '100',
+  },
+  {
+    id: 'souvenir-year',
+    kind: 'souvenir',
+    name: 'The Year',
+    blurb: 'Three hundred and sixty-five days in a row. Every one of them.',
+    price: 0,
+    streakDay: 365,
+    swatch: '#F0B44C',
+    glyph: '365',
+  },
 ]
 
 /**
@@ -234,9 +272,11 @@ export function souvenirAward(item: ShopItem): AwardDef {
     id: item.id,
     kind: 'moment',
     name: item.name,
-    how: venue
-      ? `Win ${venue.name}, then buy it at the Chip Shop`
-      : 'Sold at the Chip Shop. No win required — just means',
+    how: item.streakDay
+      ? `Keep a ${item.streakDay}-day streak`
+      : venue
+        ? `Win ${venue.name}, then buy it at the Chip Shop`
+        : 'Sold at the Chip Shop. No win required — just means',
     color: item.swatch ?? '#CDAA3D',
     glyph: item.glyph ?? '·',
   }
@@ -266,6 +306,8 @@ const BACK_BLURBS: Record<string, string> = {
   'back-noir': 'Black on black. Says nothing, loudly.',
   'back-racing': 'Goes faster. (It doesn’t.)',
   'back-goldleaf': 'Won on the river, gilded on land.',
+  'back-kindling': 'Fourteen days running. Catches if you breathe on it.',
+  'back-phoenix': 'Two hundred days. It keeps coming back, like you.',
   'back-millionaire': 'Costs a million. Does nothing else.',
 }
 
@@ -277,6 +319,7 @@ const backItem = (design: CardBackDesign): ShopItem => ({
   price: design.unlock?.price ?? 0,
   requiresVenueWin: design.unlock?.venueWin,
   membersOnly: design.unlock?.membersOnly,
+  streakDay: design.unlock?.streakDay,
   swatch: design.color,
 })
 
@@ -298,6 +341,7 @@ const cosmeticItem =
     blurb: item.blurb,
     price: item.price,
     membersOnly: item.membersOnly,
+    streakDay: item.streakDay,
   })
 
 export const SHOP_ITEMS: readonly ShopItem[] = [
@@ -307,6 +351,7 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   // is the order somebody weighing the membership wants them in.
   ...MEMBER_BACKS.map(backItem),
   ...MEMBER_SHOP_BACKS.map(backItem),
+  ...STREAK_BACKS.map(backItem),
   ...DECK_FACES,
   ...TABLE_FINISHES,
   ...AVATAR_RINGS.map(cosmeticItem('ring')),
@@ -314,6 +359,35 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   ...SOUND_PACKS.map(cosmeticItem('sound')),
   ...SOUVENIRS,
 ]
+
+// --- where an item stands ------------------------------------------------------
+
+/**
+ * Where one shop item stands for this player, as the one thing the shop says
+ * about it. The refusals come in the order `lib/sitDown` refuses in: the
+ * membership, then the win, then the money, so the first true thing is the one
+ * shown.
+ */
+export type ShopStatus = 'usable' | 'buy' | 'short' | 'members' | 'win' | 'streak'
+
+export interface ShopContext {
+  owned: ReadonlySet<string>
+  member: boolean
+  wonVenues: ReadonlySet<string>
+  roll: number
+}
+
+export function shopStatus(item: ShopItem, ctx: ShopContext): ShopStatus {
+  // Streak items are earned by the daily reward and nothing else opens them.
+  if (item.streakDay !== undefined) return ctx.owned.has(item.id) ? 'usable' : 'streak'
+  // Free things are not bought, and a free thing is never in `owned`.
+  const free = item.price === 0 && !item.membersOnly
+  const included = item.price === 0 && item.membersOnly === true
+  if (free || ctx.owned.has(item.id) || (included && ctx.member)) return 'usable'
+  if (item.membersOnly && !ctx.member) return 'members'
+  if (item.requiresVenueWin && !ctx.wonVenues.has(item.requiresVenueWin)) return 'win'
+  return ctx.roll >= item.price ? 'buy' : 'short'
+}
 
 // --- the locked tap ------------------------------------------------------------
 //

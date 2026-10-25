@@ -150,6 +150,15 @@ are left out: neither is one game you sit down to and finish. **Lessons are left
   like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
   game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
 
+## Double daily rewards (2026-10-25)
+
+Members get **double the chips** from the daily reward (docs/daily-reward.md), every day: six
+buy-ins at their table a day once the first week is done, against three. This
+is the first perk paid in chips, and it needed a ruling (Will, 2026-10-25): chips buy style and
+seats, never edge at a table, so doubling a gift of them is not pay-to-win. The streak items
+are the same for everybody, and nothing about the reward is sold for money. `daily-reward` is
+its entry in `MEMBERSHIP_FEATURES`.
+
 ## Where the answer comes from
 
 Three files, and the separation between them is the design.

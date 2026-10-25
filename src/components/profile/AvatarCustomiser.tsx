@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { PillTabs, ROOMY_DIALOG } from '@/components/ui/picker'
 import {
   AVATAR_BG_SWATCH_NAMES,
   AVATAR_BG_SWATCHES,
@@ -43,7 +44,7 @@ export function AvatarCustomiser({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="h-[calc(100dvh-2rem)] sm:h-[min(44rem,calc(100dvh-2rem))] sm:max-w-[min(64rem,calc(100%-2rem))]">
+      <DialogContent className={ROOMY_DIALOG}>
         <DialogHeader>
           <DialogTitle>Customise avatar</DialogTitle>
           <DialogDescription>Pick each feature.</DialogDescription>
@@ -176,31 +177,11 @@ function Customiser({
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <div
-            role="tablist"
-            className="-mx-1 flex shrink-0 gap-1.5 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap [&::-webkit-scrollbar]:hidden"
-          >
-            {AVATAR_PARTS.map((p) => (
-              <button
-                key={p.part}
-                type="button"
-                role="tab"
-                aria-selected={p.part === part}
-                onClick={() => {
-                  sound.play('tap')
-                  setPart(p.part)
-                }}
-                className={cn(
-                  'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition',
-                  p.part === part
-                    ? 'bg-foreground text-background'
-                    : 'bg-foreground/5 text-foreground hover:bg-foreground/10',
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <PillTabs
+            tabs={AVATAR_PARTS.map((p) => ({ id: p.part, label: p.label }))}
+            value={part}
+            onChange={setPart}
+          />
           <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-1">
             <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))]">
               {thumbs.map(({ value, src }) => {

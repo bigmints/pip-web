@@ -399,6 +399,15 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
       'Card backs that wear a real foil, a gilt ring round your avatar, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
     shipped: true,
   },
+  {
+    // The daily reward (Will, 2026-10-25): members get double the chips on
+    // every claim. The streak items are the same for everybody.
+    id: 'daily-reward',
+    title: 'Double daily rewards',
+    blurb:
+      'Come back each day and claim chips counted in buy-ins at your table: one on day 1, three by day 7, and three every day after that while the streak lasts. Members get double, so six buy-ins a day once the week is done. The streak items and the Regulars’ Table are the same for everybody.',
+    shipped: true,
+  },
 ]
 
 /** The ones a page may advertise. */

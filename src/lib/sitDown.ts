@@ -42,7 +42,10 @@ export interface RollInput {
 }
 
 /** The profile fields a sit-down is decided from. */
-export interface SitDownInput extends ChallengeInput, RollInput {}
+export interface SitDownInput extends ChallengeInput, RollInput {
+  /** What the player holds: a streak table opens only for an id in here. */
+  owned?: readonly string[]
+}
 
 /** Why the table said no. `null` from {@link refuseSitDown} means it said yes. */
 export type SitDownRefusal =
@@ -50,6 +53,7 @@ export type SitDownRefusal =
   | 'freeroll-closed'
   | 'not-your-challenge'
   | 'members-only'
+  | 'streak-locked'
 
 /**
  * The Roll every question on this page is answered against.
@@ -102,6 +106,9 @@ export function refuseSitDown(
   if (isChallengeTable(venue) && challengeOnOffer(p, device)?.venue.id !== venue.id) {
     return 'not-your-challenge'
   }
+  // A streak table opens for the streak and nothing else. After the money, so
+  // the money is still the first thing any table says to a short Roll.
+  if (venue.streakUnlock && !(p.owned ?? []).includes(venue.streakUnlock)) return 'streak-locked'
   return null
 }
 

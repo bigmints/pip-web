@@ -1,5 +1,12 @@
 import test from 'ava'
-import { SHOP_ITEMS, SOUVENIRS, TABLE_FINISHES, tableFinishById } from '@/config/shop'
+import {
+  SHOP_ITEMS,
+  SOUVENIRS,
+  TABLE_FINISHES,
+  shopStatus,
+  tableFinishById,
+  type ShopContext,
+} from '@/config/shop'
 import {
   ALL_COSMETICS,
   AVATAR_RINGS,
@@ -39,7 +46,10 @@ test('shop item ids are unique and no price is negative', (t) => {
 // row is one of a short list somebody decided to give away, and a new item
 // arriving at 0 by accident fails here rather than shipping as a freebie.
 test('the only free things are the ones we meant to give away', (t) => {
-  const free = SHOP_ITEMS.filter((i) => i.price === 0 && !i.membersOnly).map((i) => i.id)
+  // Streak items are priced at zero too, but earned, never free (tests/dailyReward).
+  const free = SHOP_ITEMS.filter(
+    (i) => i.price === 0 && !i.membersOnly && i.streakDay === undefined,
+  ).map((i) => i.id)
   t.deepEqual(free.sort(), [
     'button-house',
     'face-bigindex',
@@ -207,8 +217,8 @@ test('every table has a souvenir requiring its win — ladder, side tables and t
       t.true(souvenir!.price <= venue.buyIn, 'souvenirs cost less than the venue buy-in')
     }
   }
-  // Plus exactly one no-win-required absurdity.
-  const free = SOUVENIRS.filter((s) => !s.requiresVenueWin)
+  // Plus exactly one no-win-required absurdity (the streak's souvenir is earned).
+  const free = SOUVENIRS.filter((s) => !s.requiresVenueWin && s.streakDay === undefined)
   t.is(free.length, 1)
   t.is(free[0].id, 'souvenir-goldenpip')
 })
@@ -320,4 +330,50 @@ test('table finishes resolve by id', (t) => {
   t.is(tableFinishById(null), undefined)
   t.is(tableFinishById('nope'), undefined)
   t.true(TABLE_FINISHES.every((f) => f.swatch.startsWith('#')))
+})
+
+// --- shopStatus: the one thing the shop says about an item ---------------------
+
+const item = (id: string) => SHOP_ITEMS.find((i) => i.id === id)!
+const ctx = (over: Partial<ShopContext> = {}): ShopContext => ({
+  owned: new Set(),
+  member: false,
+  wonVenues: new Set(),
+  roll: 0,
+  ...over,
+})
+
+test('shopStatus: free stock is usable to everybody, broke or not', (t) => {
+  t.is(shopStatus(item('finish-baize'), ctx()), 'usable')
+})
+
+test('shopStatus: priced stock is buy or short on the Roll, and usable once owned', (t) => {
+  t.is(shopStatus(item('finish-slate'), ctx({ roll: 2_500 })), 'buy')
+  t.is(shopStatus(item('finish-slate'), ctx({ roll: 2_499 })), 'short')
+  t.is(shopStatus(item('finish-slate'), ctx({ owned: new Set(['finish-slate']) })), 'usable')
+})
+
+test('shopStatus: the membership is refused before the money', (t) => {
+  // Marble is on the members' shelf at 120,000: a rich non-member hears "members".
+  t.is(shopStatus(item('finish-marble'), ctx({ roll: 1_000_000 })), 'members')
+  t.is(shopStatus(item('finish-marble'), ctx({ roll: 1_000_000, member: true })), 'buy')
+  // Included items need no chips at all.
+  t.is(shopStatus(item('finish-smoke'), ctx({ member: true })), 'usable')
+  t.is(shopStatus(item('finish-smoke'), ctx()), 'members')
+})
+
+test('shopStatus: a bought member item stays usable after the membership lapses', (t) => {
+  t.is(shopStatus(item('finish-marble'), ctx({ owned: new Set(['finish-marble']) })), 'usable')
+})
+
+test('shopStatus: a venue win is refused before the money', (t) => {
+  const goldLeaf = item('back-goldleaf')
+  t.is(shopStatus(goldLeaf, ctx({ roll: 1_000_000 })), 'win')
+  t.is(
+    shopStatus(
+      goldLeaf,
+      ctx({ roll: 1_000_000, wonVenues: new Set([goldLeaf.requiresVenueWin!]) }),
+    ),
+    'buy',
+  )
 })

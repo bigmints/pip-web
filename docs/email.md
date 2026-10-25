@@ -4,7 +4,8 @@ Pip sends three kinds of email, and only to a signed-in player who asked for the
 
 | Kind | When | What it says |
 |------|------|--------------|
-| **Streak reminder** | From 18:00 UTC, on a day the player has not played yet, if they played the day before | Today's Daily number, that it closes at midnight UTC, the streak if the profile has one, a link to `/game` |
+| **Streak reminder** | From 18:00 UTC, on a day the player has not played or claimed yet, if they did the day before | The streak, what today's daily reward pays (and a member's double, or what members get), the next streak item, today's Daily number, a link to `/game` |
+| **Streak ended** (a reminder) | From 18:00 UTC, the day after a streak of 2+ days ended | That it ended, that earned items stay, day 1's reward, a link to `/game`. True on one day only, so sent once |
 | **Weekly summary** | Mondays from 09:00 UTC | The Roll, hands / tournaments / wins and the Roll's change since the last summary, the streak if alive, today's Daily number, one link |
 | **Welcome** | Within the hour of a first opt-in (rows created in the last 2 days with no welcome sent) | Which of the two they turned on, and how to stop them |
 

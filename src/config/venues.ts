@@ -76,6 +76,11 @@ export interface Venue extends MembersOnly {
   bounty?: number
   /** The Daily Deal: one seeded tournament a day, same shuffle for everyone. */
   daily?: boolean
+  /**
+   * Opened by the daily reward's streak, never bought: the id held in
+   * `profile.owned` once earned (lib/dailyReward). `refuseSitDown` checks it.
+   */
+  streakUnlock?: string
   /** The Welcome Table: a new player's first game, played once (onboarding). */
   welcome?: boolean
   /** The Daily's tier, named after the rank that plays it (`dailyFor`). */
@@ -963,7 +968,8 @@ export const STARTING_ROLL = 200
 // The broke-player safety net: a free sit-and-go that opens only when you can't
 // afford the Garage. No buy-in, everyone gets a nominal stack, and the winner
 // takes home enough to buy back into the ladder. You win your way back in —
-// there is no free top-up. The table stack is never yours: leaving a freeroll
+// there is no top-up to buy. (The daily reward, lib/dailyReward, is the one
+// place chips are given for turning up, and it is the same for broke or not.) The table stack is never yours: leaving a freeroll
 // cashes out nothing (only the winner's prize pays). Deliberately a speed bump,
 // not a wall: heads-up vs the softest AI, blinds never escalate, so a decent
 // player wins it more often than not. (See docs/game-flow.md.)
@@ -1347,6 +1353,28 @@ export function familiesIn(section: ShelfSection): readonly TableFamily[] {
  * tiles. That is the trade that keeps the stake a choice without inventing any
  * persisted state.
  */
+/**
+ * The Regulars' Table — opened by a 21-day streak (Will, 2026-10-25: "special
+ * venues… special regulars get unlocked"). Free to everybody who earns it,
+ * member or not, and Maud (config/cast.ts) only ever sits here. Card Room
+ * stakes and Card Room opponents, so it is an honest game at its price; what
+ * is special about it is who you meet and how you got in.
+ */
+export const REGULARS_TABLE: Venue = {
+  id: 'regulars',
+  name: 'The Regulars’ Table',
+  tagline: 'For the ones who keep coming back. Maud saves you a seat.',
+  buyIn: 2_000,
+  smallBlind: 15,
+  bigBlind: 30,
+  seats: 6,
+  prize: 12_000,
+  handsPerLevel: 9,
+  accent: '#E8692F',
+  streakUnlock: 'table-regulars',
+  ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
+}
+
 export const ALL_VENUES: readonly Venue[] = [
   ...VENUES,
   ...SIDE_TABLES,
@@ -1361,6 +1389,7 @@ export const ALL_VENUES: readonly Venue[] = [
   THE_DAILY,
   WELCOME_TABLE,
   CUSTOM_TABLE_ROUTE,
+  REGULARS_TABLE,
 ]
 
 export function venueById(id: string): Venue | undefined {

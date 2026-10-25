@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
 import test from 'ava'
+import { MILESTONES, rewardFor, yourTable } from '@/lib/dailyReward'
+import { VENUES } from '@/config/venues'
 import { dailyNumber as appDailyNumber } from '@/lib/daily'
 // The pure half of the email Edge Functions. Deno imports it as `email.ts`;
 // here it is imported without the extension, which tsx resolves the same way.
@@ -21,6 +23,12 @@ import {
   snapshotOf,
   streakAtRisk,
   weekOf,
+  LADDER_RUNGS,
+  STREAK_ITEMS,
+  chips,
+  tableBuyIn,
+  rewardChips,
+  streakLapsed,
 } from '../supabase/functions/_shared/email'
 
 const TOKEN = '3f2b8c1e-9d4a-4e6b-8a7c-1d2e3f4a5b6c'
@@ -77,6 +85,7 @@ test('readFacts takes what the profile holds and nothing it does not', (t) => {
     roll: 9_000,
     lastPlayed: '2026-10-06',
     streak: { current: 4, best: 9 },
+    tableBuyIn: 100,
     counters: { hands: 10, tournaments: 2, wins: 1 },
   })
 })
@@ -228,9 +237,10 @@ test('the reminder names today’s Daily and links to the Daily', (t) => {
     prefs,
     unsubscribeUrl,
   })
-  t.is(email.subject, 'Your 5-day streak ends at midnight UTC')
+  t.is(email.subject, 'Your day 6 reward is waiting')
   t.regex(email.text, /Your streak is 5 days\./)
-  t.regex(email.html, /href="https:\/\/playpip\.io\/play\/daily"/)
+  t.regex(email.text, /Daily, #\d+, is free/)
+  t.regex(email.html, /href="https:\/\/playpip\.io\/game"/)
   t.true(email.text.includes(unsubscribeUrl))
   t.true(email.html.includes(unsubscribeUrl))
 })
@@ -381,4 +391,78 @@ test('email_prefs: own row only, switches only, gone with the account', (t) => {
     /grant insert \(user_id, weekly_digest, daily_reminder\) on public\.email_prefs to authenticated/,
   )
   t.regex(sql, /revoke all on public\.email_prefs from anon/)
+})
+
+// --- the daily reward in the reminder --------------------------------------
+
+test("the email's reward sum is the app's, for every day and table", (t) => {
+  for (const venue of VENUES) {
+    for (let day = 1; day <= 30; day++) {
+      for (const member of [false, true]) {
+        t.is(rewardChips(day, venue.buyIn, member), rewardFor(day, venue.buyIn, member).chips)
+      }
+    }
+  }
+})
+
+test("the email's ladder is the app's, and finds the same table", (t) => {
+  t.deepEqual(
+    LADDER_RUNGS,
+    VENUES.map((v) => ({ id: v.id, buyIn: v.buyIn })),
+  )
+  const records = { garage: { won: 2 }, pub: { won: 1 } }
+  t.is(tableBuyIn(records), yourTable(records).buyIn)
+  t.is(tableBuyIn(null), yourTable({}).buyIn)
+})
+
+test('the email names the same streak items on the same days as the app', (t) => {
+  t.deepEqual(
+    STREAK_ITEMS.map((i) => i.day),
+    MILESTONES.map((m) => m.day),
+  )
+  for (const [i, m] of MILESTONES.entries()) {
+    t.true(STREAK_ITEMS[i].name.toLowerCase().includes(m.name.toLowerCase()), m.id)
+  }
+})
+
+test("the reminder says what tomorrow's claim pays, and what a member gets", (t) => {
+  const email = render({
+    kind: 'reminder',
+    now: at(WED, 18),
+    facts: facts({ lastPlayed: '2026-10-06', streak: { current: 5, best: 5 }, tableBuyIn: 300 }),
+    prefs,
+    unsubscribeUrl,
+  })
+  t.true(email.text.includes(`Today's reward is ${chips(rewardFor(6, 300, false).chips)}.`))
+  t.true(email.text.includes(`Members get ${chips(rewardFor(6, 300, true).chips)}.`))
+  t.regex(email.text, /the Ember ring comes on day 7, 1 day from now/i)
+})
+
+test("a member's reminder says their doubled reward and no upsell", (t) => {
+  const email = render({
+    kind: 'reminder',
+    now: at(WED, 18),
+    facts: facts({
+      lastPlayed: '2026-10-06',
+      streak: { current: 6, best: 6 },
+      tableBuyIn: 300,
+      member: true,
+    }),
+    prefs,
+    unsubscribeUrl,
+  })
+  t.true(email.text.includes(`Today's reward is ${chips(rewardFor(7, 300, true).chips)}.`))
+  t.notRegex(email.text, /Members get/)
+  t.regex(email.text, /Ember ring is yours too/)
+})
+
+test('the day after a streak ends, one email offers day 1', (t) => {
+  const lapsed = facts({ lastPlayed: '2026-10-05', streak: { current: 9, best: 9 } })
+  t.true(streakLapsed(lapsed, WED))
+  t.false(streakLapsed(lapsed, '2026-10-09'), 'only on the first day after')
+  t.false(streakLapsed(facts({ lastPlayed: '2026-10-05', streak: { current: 1, best: 1 } }), WED))
+  t.is(dueKind(row(), lapsed, at(WED, REMINDER_HOUR_UTC)), 'reminder')
+  const email = render({ kind: 'reminder', now: at(WED, 18), facts: lapsed, prefs, unsubscribeUrl })
+  t.is(email.subject, 'Start a new streak today')
+  t.regex(email.text, /Your 9-day streak ended at midnight/)
 })
