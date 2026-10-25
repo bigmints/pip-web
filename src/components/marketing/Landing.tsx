@@ -1021,7 +1021,7 @@ function SignInLink() {
 }
 
 /**
- * How many hands have been played on Pip, against the AI and against people.
+ * How many hands have been played on Pip, all of it: against the AI and against people.
  * Empty and hidden in the static page: the landing page's function
  * (functions/index.ts) fills it in on the way out, from the room server's count,
  * so a visitor's browser never asks for it. If the count cannot be had, the

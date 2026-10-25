@@ -66,7 +66,7 @@ async function serveLanding(ctx: Ctx): Promise<Response> {
   if (!(page.headers.get('Content-Type') ?? '').includes('text/html')) return page
   const count = await handCount(ctx)
   if (!count) return page
-  const line = `<span class="font-medium text-foreground">${n(totalHands(count))}</span> hands played · ${n(count.ai)} against the AI · ${n(count.people)} against people`
+  const line = `<span class="font-medium text-foreground">${n(totalHands(count))}</span> hands played`
   const headers = new Headers(page.headers)
   // The body is no longer the asset the ETag names.
   headers.delete('ETag')
