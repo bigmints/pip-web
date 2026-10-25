@@ -34,8 +34,10 @@ table ever sees another player's Roll or rank.
 
 | | | |
 |---|---|---|
-| Who pays | **Only the host.** Friends join free with an account. Quick match is members only. | 2026-10-11 |
-| Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). Slow games and quick match stay members only. | 2026-10-23 |
+| Who pays | **Only the host.** Friends join free with an account. | 2026-10-11 |
+| Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). | 2026-10-23 |
+| Free quick match and slow game | **One quick match a day, and one hosted slow game open at a time**, for any account. | 2026-10-25 |
+| Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |
 | Format | **Sit-and-go**, at ladder venue stakes. | 2026-10-11 |
 | Chips | **The Roll**, and nobody sees anybody else's Roll or rank. | 2026-10-06 |
 | Bots | **Quick match fills with AI strangers** (tagged "AI") after about 30 seconds. **A host may add the cast to a private room.** | 2026-10-11 |
@@ -138,9 +140,10 @@ The engine is imported unchanged. What runs on the server is what is in the publ
 
 - **`index.ts`**, the front door. Every socket and every room creation must come from an origin
   in `ALLOWED_ORIGINS`.
-  - `POST /rooms` creates a room. It needs a bearer token and membership, or today's free
-    room (`free-room-used` once spent; the `Player` object keeps the day).
-  - `GET /free-room` says whether today's free room is spent, for the hub.
+  - `POST /rooms` creates a room. It needs a bearer token and membership, or the free one of
+    that kind (`free-room-used` / `free-slow-used` once spent; the `Player` object keeps them).
+  - `GET /free` says what is left of the free hosting (`{ room, quick, slow }`), for the hub.
+    `GET /free-room` is the old form, kept for a cached page.
   - `GET /rooms/:code` returns a peek for the join screen.
   - `GET /rooms/:code/ws` is a table's socket.
   - `GET /queue/:venueId/ws` is a stake's queue.

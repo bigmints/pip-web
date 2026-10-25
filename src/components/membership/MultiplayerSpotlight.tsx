@@ -38,7 +38,7 @@ const POINTS = [
   {
     icon: Users,
     title: 'Friends join free',
-    body: 'Everyone else needs a free Pip account and the code. Hosting is free once a day.',
+    body: 'Everyone else needs a free Pip account and the code. One room a day is free to host.',
   },
   {
     icon: Hourglass,

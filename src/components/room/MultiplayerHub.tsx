@@ -7,11 +7,12 @@
 // so the choice reads as a place you are about to sit rather than a number.
 // Underneath, six boxes take a friend's code and go the moment it is whole.
 //
-// Quick match, slow games and opening rooms whenever you like come with the
-// membership. Joining a friend's room needs only a free account, so a member's
-// game is never short of people because their friends have not paid (Will,
-// 2026-10-11), and anyone with an account can open one live room a day (Will,
-// 2026-10-23; the server counts it, `lib/multiplayer/freeRoom.ts`). Like the
+// Hosting as much as you like comes with the membership. Joining a friend's
+// room needs only a free account, so a member's game is never short of people
+// because their friends have not paid (Will, 2026-10-11). And anyone with an
+// account can host one live room a day, one quick match a day and one slow
+// game at a time (Will, 2026-10-23 and 2026-10-25; the server counts them,
+// `lib/multiplayer/freeRoom.ts`), on the same form a member gets. Like the
 // table builder, the page is the same for everybody: you cannot want what you
 // cannot see.
 
@@ -28,12 +29,13 @@ import { VenueArt } from '@/components/menu/VenueArt'
 import { membershipFor } from '@/config/membership'
 import { VENUES, type Venue } from '@/config/venues'
 import { DEFAULT_ROOM_SEATS, DEFAULT_SETTINGS, type RoomSettings } from '@/lib/multiplayer/room'
+import type { FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { CODE_ALPHABET, CODE_LENGTH, normaliseRoomCode } from '@/lib/multiplayer/code'
 import {
   createRoom,
   devMember,
   devSignedIn,
-  fetchFreeRoomSpent,
+  fetchFreeLeft,
   roomsConfigured,
 } from '@/lib/multiplayer/client'
 import { sound } from '@/lib/sound'
@@ -55,6 +57,10 @@ const ERRORS: Record<string, string> = {
   auth: 'Sign in again to play.',
   'members-only': 'This comes with the membership.',
   'free-room-used': 'Your free room today is used. Opening another comes with the membership.',
+  'free-quick-used':
+    'Your free quick match today is used. Playing another comes with the membership.',
+  'free-slow-used':
+    'You’re already hosting your free slow game. Hosting another comes with the membership.',
   'too-many': 'You’re in ten slow games already. Finish one first.',
   offline: 'Couldn’t reach the tables. Check your connection and try again.',
   busy: 'Couldn’t open a room just now. Try again in a moment.',
@@ -84,16 +90,16 @@ export function MultiplayerHub() {
   const [creating, setCreating] = useState(false)
   const [opening, setOpening] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
-  // Today's free room, for somebody signed in without the membership.
-  // Undefined until asked; if the asking fails it reads as unspent, and the
-  // server still refuses a second room.
-  const [freeSpent, setFreeSpent] = useState<boolean | undefined>(undefined)
+  // What is left of the free hosting, for somebody signed in without the
+  // membership. Undefined until asked; if the asking fails it reads as all
+  // left, and the server still refuses a second one.
+  const [freeLeft, setFreeLeft] = useState<FreeLeft | undefined>(undefined)
   const askFree = hydrated && signedIn && !member && roomsConfigured()
   useEffect(() => {
     if (!askFree) return
     let live = true
-    void fetchFreeRoomSpent().then((spent) => {
-      if (live) setFreeSpent(spent ?? false)
+    void fetchFreeLeft().then((left) => {
+      if (live) setFreeLeft(left ?? { room: true, quick: true, slow: true })
     })
     return () => {
       live = false
@@ -127,8 +133,12 @@ export function MultiplayerHub() {
   // A room for fun takes nothing from the Roll, so any stake will do.
   const free = mode === 'friends' && !settings.forRoll
   const affords = (v: Venue) => free || v.buyIn <= spendable
-  // A member hosts anything; anybody else, today's live room if it is unspent.
-  const host = member || (mode === 'friends' && !slow && freeSpent === false)
+  // A member hosts anything; anybody else, the free one of what they picked.
+  const kindLeft = (k: keyof FreeLeft) =>
+    freeLeft?.[k] === true &&
+    !(k === 'quick' && queue.state === 'failed' && queue.error === 'free-quick-used')
+  const picked: keyof FreeLeft = mode === 'quick' ? 'quick' : slow ? 'slow' : 'room'
+  const host = member || kindLeft(picked)
   const canPlay = signedIn && host && affords(stake)
 
   const seat = () => {
@@ -152,9 +162,9 @@ export function MultiplayerHub() {
     const result = await createRoom(stake.id, seat(), settings, slow ? 'slow' : 'private')
     setOpening(false)
     if ('error' in result) {
-      if (result.error === 'free-room-used') {
-        setFreeSpent(true)
-        setCreating(false)
+      if (result.error === 'free-room-used' || result.error === 'free-slow-used') {
+        const used = result.error === 'free-room-used' ? 'room' : 'slow'
+        setFreeLeft((left) => left && { ...left, [used]: false })
       }
       setProblem(ERRORS[result.error] ?? ERRORS.busy)
       return
@@ -283,9 +293,9 @@ export function MultiplayerHub() {
           </div>
         </div>
 
-        {/* Three different pages in one: a member gets the whole form; somebody
-            signed in without the membership can join a friend's room and is
-            shown what hosting would take; somebody signed out is asked to sign
+        {/* Two pages in one: somebody signed in gets the whole form, with the
+            free one of each marked for anybody without the membership and what
+            the membership adds under it; somebody signed out is asked to sign
             in and shown nothing they could not use. */}
         {signedIn && <YourGames />}
 
@@ -302,70 +312,6 @@ export function MultiplayerHub() {
               setAccountOpen(true)
             }}
           />
-        ) : !member ? (
-          <>
-            <JoinBox
-              onComplete={(code) => {
-                sound.play('call')
-                router.push(`/game/room?code=${code}`)
-              }}
-            />
-            {freeSpent !== undefined && (
-              <div className="flex items-center gap-3 text-2xs uppercase tracking-[0.2em] text-muted-foreground">
-                <span className="h-px flex-1 bg-foreground/10" />
-                or
-                <span className="h-px flex-1 bg-foreground/10" />
-              </div>
-            )}
-            {freeSpent === false && creating ? (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="flex flex-col gap-5"
-              >
-                {/* No pace choice: slow games stay with the membership. */}
-                <SettingsList
-                  settings={settings}
-                  buyIn={stake.buyIn}
-                  onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
-                  stakes={stakePicker}
-                />
-                {primary}
-                <button
-                  onClick={() => {
-                    sound.play('tap')
-                    setCreating(false)
-                  }}
-                  className="-mt-2 text-sm text-muted-foreground transition hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </motion.div>
-            ) : freeSpent === false ? (
-              <div className="flex flex-col gap-3">
-                <p className="text-center text-sm text-muted-foreground">
-                  One free room a day. Open it, send the code, deal.
-                </p>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    sound.play('tap')
-                    setProblem(null)
-                    setCreating(true)
-                  }}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14]"
-                >
-                  Open today’s free room
-                </motion.button>
-              </div>
-            ) : freeSpent === true && !problem ? (
-              <p className="text-center text-sm text-muted-foreground">
-                Your free room today is used. The membership opens one whenever you like.
-              </p>
-            ) : null}
-            <HostPanel />
-          </>
         ) : (
           <>
             <Segmented
@@ -432,7 +378,6 @@ export function MultiplayerHub() {
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14]"
                   >
-                    {signedIn && !member && <Lock className="size-4" />}
                     Create a room
                   </motion.button>
                 )}
@@ -447,6 +392,12 @@ export function MultiplayerHub() {
                 {primary}
               </>
             )}
+            {!member && freeLeft !== undefined && !problem && !queueFailed && (
+              <p className="-mt-2 text-center text-sm text-muted-foreground">
+                {freeLine(picked, kindLeft(picked))}
+              </p>
+            )}
+            {!member && <HostPanel />}
           </>
         )}
 
@@ -505,14 +456,24 @@ function GuestPanel({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: ()
   )
 }
 
+/** The line under the button for somebody without the membership: what is free, or that it is used. */
+function freeLine(kind: keyof FreeLeft, left: boolean): string {
+  if (kind === 'quick') {
+    return left ? 'One free quick match a day.' : 'Your free quick match today is used.'
+  }
+  if (kind === 'slow') {
+    return left ? 'One free slow game at a time.' : 'You’re hosting your free slow game.'
+  }
+  return left ? 'One free room a day.' : 'Your free room today is used.'
+}
+
 const HOSTING = [
   { icon: Users, text: 'Open a room whenever you like' },
-  { icon: Video, text: 'Camera and voice at the table' },
-  { icon: Clock, text: 'Slow games, a move at a time' },
-  { icon: Zap, text: 'Quick match at any stake' },
+  { icon: Clock, text: 'Up to ten slow games at once' },
+  { icon: Zap, text: 'Quick match as often as you like' },
 ] as const
 
-/** Signed in, not a member: joining is free, one room a day is free, the rest is the membership. */
+/** Signed in, not a member: joining is free, one of each is free, the rest is the membership. */
 function HostPanel() {
   return (
     <motion.div

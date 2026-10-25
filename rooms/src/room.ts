@@ -542,7 +542,13 @@ export class PokerRoom extends DurableObject<Env> {
     }
     let next: RoomState
     try {
-      next = tick(room, now, cryptoRng)
+      const present = new Set(
+        this.ctx
+          .getWebSockets()
+          .map((ws) => (ws.deserializeAttachment() as Attachment).userId)
+          .filter((u): u is string => u !== null),
+      )
+      next = tick(room, now, cryptoRng, present)
     } catch (e) {
       // Never throw out of here: Cloudflare retries a failed alarm after 2 s,
       // then 4, 8, 16..., which is the table frozen for half a minute. Try

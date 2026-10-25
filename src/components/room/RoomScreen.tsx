@@ -40,7 +40,7 @@ import { RoomTable } from './RoomTable'
 
 const ERROR_COPY: Partial<Record<ServerError, string>> = {
   auth: 'Sign in again to sit down.',
-  'members-only': 'Your free room today is used. Opening another comes with the membership.',
+  'members-only': 'This comes with the membership.',
   'no-room': 'There’s no room with that code. It may have finished, or the code is mistyped.',
   full: 'That table is full.',
   started: 'That game has already started. Only the players who sat down before the deal can join.',

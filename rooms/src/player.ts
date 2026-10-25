@@ -10,9 +10,9 @@
 // switches (Settings → Notifications) and the devices they allowed pushes on.
 // All of it is keyed by the account, so it works the same on every device.
 //
-// And the day their free room was last spent (`lib/multiplayer/freeRoom.ts`),
-// so the one-a-day allowance holds on every device and cannot be reset from
-// the browser.
+// And the days their free room and free quick match were last spent
+// (`lib/multiplayer/freeRoom.ts`), so the one-a-day allowances hold on every
+// device and cannot be reset from the browser.
 
 import { DurableObject } from 'cloudflare:workers'
 import {
@@ -27,9 +27,13 @@ import {
 } from '@/lib/multiplayer/notices'
 import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
-import { freeRoomSpent, utcDay } from '@/lib/multiplayer/freeRoom'
+import { FREE_SLOW_GAMES, spentToday, utcDay, type FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { json, type Env } from './env'
 import { emailOf, gameUrl, offLink, pushAll, sendEmail, turnEmail } from './notify'
+
+/** The daily free tables, and where the day each was last spent is kept. */
+export type FreeDaily = 'room' | 'quick'
+const FREE_KEYS: Record<FreeDaily, string> = { room: 'freeRoomDay', quick: 'freeQuickDay' }
 
 /** Devices one account may register. The oldest is dropped past this. */
 const MAX_DEVICES = 10
@@ -76,24 +80,40 @@ export class Player extends DurableObject<Env> {
         )
         return json({ open: open.length, max: MAX_SLOW_GAMES }, 200)
       }
-      case 'GET /free-room': {
-        const day = await this.get<string | null>('freeRoomDay', null)
-        return json({ spent: freeRoomSpent(day, Date.now()) }, 200)
-      }
-      case 'POST /free-room': {
-        // Read and written with nothing awaited between, so two rooms opened
-        // at once cannot both have today's.
+      case 'GET /free': {
+        // What is left of their free hosting, whether or not they are a member.
         const now = Date.now()
-        const previous = await this.get<string | null>('freeRoomDay', null)
-        if (freeRoomSpent(previous, now)) return json({ ok: false }, 200)
-        await this.ctx.storage.put('freeRoomDay', utcDay(now))
+        const hostedOpen = Object.values(await this.games()).filter(
+          (g) => g.isHost && (g.phase === 'lobby' || g.phase === 'playing'),
+        ).length
+        return json(
+          {
+            room: !spentToday(await this.get<string | null>(FREE_KEYS.room, null), now),
+            quick: !spentToday(await this.get<string | null>(FREE_KEYS.quick, null), now),
+            slow: hostedOpen < FREE_SLOW_GAMES,
+          } satisfies FreeLeft,
+          200,
+        )
+      }
+      case 'POST /free/claim': {
+        // Read and written with nothing awaited between, so two tables
+        // opened at once cannot both have today's.
+        const { kind } = (await request.json()) as { kind?: FreeDaily }
+        const key = kind && FREE_KEYS[kind]
+        if (!key) return json({ ok: false }, 400)
+        const now = Date.now()
+        const previous = await this.get<string | null>(key, null)
+        if (spentToday(previous, now)) return json({ ok: false }, 200)
+        await this.ctx.storage.put(key, utcDay(now))
         return json({ ok: true, previous }, 200)
       }
-      case 'POST /free-room/release': {
-        // The room could not be opened after all: today's is theirs again.
-        const { previous } = (await request.json()) as { previous?: string | null }
-        if (typeof previous === 'string') await this.ctx.storage.put('freeRoomDay', previous)
-        else await this.ctx.storage.delete('freeRoomDay')
+      case 'POST /free/release': {
+        // The table could not be opened after all: today's is theirs again.
+        const body = (await request.json()) as { kind?: FreeDaily; previous?: string | null }
+        const key = body.kind && FREE_KEYS[body.kind]
+        if (!key) return json({ ok: false }, 400)
+        if (typeof body.previous === 'string') await this.ctx.storage.put(key, body.previous)
+        else await this.ctx.storage.delete(key)
         return json({ ok: true }, 200)
       }
       case 'POST /card':

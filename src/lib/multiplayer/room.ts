@@ -83,6 +83,12 @@ export const QUICK_START_MS = 15_000
 /** A room nobody has started, or a finished one, is cleared after this. */
 export const IDLE_EXPIRE_MS = 2 * 60 * 60 * 1000
 export const FINISHED_EXPIRE_MS = 30 * 60 * 1000
+/**
+ * A live table nobody has open stops dealing and waits this long for one of
+ * them to come back, then closes. Without it, a table everybody walked away
+ * from dealt on by itself forever on the away clock.
+ */
+export const EMPTY_HOLD_MS = 10 * 60 * 1000
 /** Timeouts in a row before a player is treated as away. */
 export const AWAY_AFTER_TIMEOUTS = 2
 /** A move set ahead of time is made this long after the turn reaches it, so it can be seen. */
@@ -376,6 +382,8 @@ export function join(state: RoomState, j: Joiner, now: number, rng?: Rng): Resul
         : p,
     )
     const next = { ...state, players }
+    // Back at a table that stopped dealing because nobody had it open.
+    if (held(state)) return ok(schedule(next, now + NEXT_HAND_MS, 'next-hand'))
     return ok(state.phase === 'playing' ? retime(next, now) : bump(next))
   }
   if (state.phase !== 'lobby') return fail('started')
@@ -1042,12 +1050,34 @@ function settle(ended: RoomState, now: number): RoomState {
 }
 
 /**
+ * Whether nobody seated at a live table has it open. `present` is the
+ * accounts with a socket on it right now, which the server knows and the
+ * state cannot: `connected` stays true when a restart drops a socket without
+ * a close. Slow games are played with the table shut, so never.
+ */
+export function nobodyThere(state: RoomState, present: ReadonlySet<string>): boolean {
+  if (state.kind === 'slow' || state.phase !== 'playing') return false
+  return !state.players.some((p) => !p.bot && p.userId !== null && present.has(p.userId))
+}
+
+/** A live table between hands, waiting for somebody to come back before it deals again. */
+export function held(state: RoomState): boolean {
+  return state.phase === 'playing' && state.dueKind === 'expire'
+}
+
+/**
  * Whatever is due, done. The server calls this from its alarm.
  *
  * Returns the state unchanged when nothing is due yet, so an alarm that fires
- * early (or twice) is harmless.
+ * early (or twice) is harmless. With `present`, a live table nobody has open
+ * holds the next deal (`EMPTY_HOLD_MS`) instead of dealing it.
  */
-export function tick(state: RoomState, now: number, rng: Rng): RoomState {
+export function tick(
+  state: RoomState,
+  now: number,
+  rng: Rng,
+  present?: ReadonlySet<string>,
+): RoomState {
   if (state.dueAt === null || now < state.dueAt) return state
   switch (state.dueKind) {
     case 'expire':
@@ -1055,7 +1085,14 @@ export function tick(state: RoomState, now: number, rng: Rng): RoomState {
     case 'start':
       return state.phase === 'lobby' ? beginQuick(state, now, rng) : state
     case 'next-hand':
-      return state.phase === 'playing' ? deal(state, now, rng) : state
+      if (state.phase !== 'playing') return state
+      if (present && nobodyThere(state, present)) {
+        const players = state.players.map((p) =>
+          p.userId && !present.has(p.userId) ? { ...p, connected: false } : p,
+        )
+        return schedule({ ...state, players }, now + EMPTY_HOLD_MS, 'expire')
+      }
+      return deal(state, now, rng)
     case 'bot': {
       const hand = state.hand
       if (!hand || isHandComplete(hand)) return reschedule(state, now)

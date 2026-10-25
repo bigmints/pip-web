@@ -84,6 +84,8 @@ export type ServerError =
   | 'bad-settings'
   /** Already in as many slow games as anybody may be. */
   | 'too-many'
+  /** Today's free quick match is used, and they are not a member. */
+  | 'free-quick-used'
 
 export type ServerMessage =
   /** `now` is the server's clock, so a turn timer can be drawn without trusting the device's. */

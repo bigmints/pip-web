@@ -1515,17 +1515,17 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
               as on the ladder.
             </p>
             <p>
-              Quick match is for members. Camera and mic are only ever on in a room somebody opened
-              for their friends, never at a quick-match table.
+              Camera and mic are only ever on in a room somebody opened for their friends, never at
+              a quick-match table.
             </p>
           </Question>
         )}
         {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
           <Question q="Can I host without a membership?">
             <p>
-              Once a day. Anyone with a free Pip account can open one private room a day, camera and
-              voice included. The membership opens as many as you like, and adds quick match and
-              slow games.
+              Yes, a little. Anyone with a free Pip account can open one private room a day, camera
+              and voice included, play one quick match a day, and host one slow game at a time. The
+              membership opens as many of each as you like.
             </p>
           </Question>
         )}
