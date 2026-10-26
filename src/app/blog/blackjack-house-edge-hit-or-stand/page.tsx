@@ -21,6 +21,7 @@ const linkClass =
 
 const millions = `${HANDS_PER_TABLE / 1_000_000} million`
 const pct = (value: number, places = 2) => `${value.toFixed(places)}%`
+const points = (value: number) => `${value.toFixed(2)} points`
 
 export default function BlackjackEdgePost() {
   const friendly = houseRulesById('friendly')
@@ -62,16 +63,16 @@ export default function BlackjackEdgePost() {
       <Section title="What the rules are worth">
         <p>
           Friendly and Standard differ only in the shoe: one deck against six. That alone is worth{' '}
-          {pct(PLAYED_EDGE.standard - PLAYED_EDGE.friendly)} to you. Part of it is naturals: they
+          {points(PLAYED_EDGE.standard - PLAYED_EDGE.friendly)} to you. Part of it is naturals: they
           come a little more often from one deck, and a natural is the only hand that pays more than
           evens.
         </p>
         <p>
           Brutal changes three things at once. Eight decks, the dealer hits a soft seventeen, and a
           natural pays six for five instead of three for two. Together they cost{' '}
-          {pct(PLAYED_EDGE.brutal - PLAYED_EDGE.standard)} more than Standard. Most of that is the
-          six for five: a natural comes about once in twenty-one hands, and it now pays three tenths
-          of a bet less each time.
+          {points(PLAYED_EDGE.brutal - PLAYED_EDGE.standard)} more than Standard. Most of that is
+          the six for five: a natural comes about once in twenty-one hands, and it now pays three
+          tenths of a bet less each time.
         </p>
         <p>
           Every table here takes more than a casino table with the same shoe and payouts, because
@@ -83,14 +84,14 @@ export default function BlackjackEdgePost() {
       <Section title="How to play it">
         <p>
           With only hit and stand, the best play fits in a paragraph. Take a card on 11 or less.
-          Stand on 17 or more. On 12, hit against a dealer 2 or 3 and stand against 4, 5 or 6. On 13
-          to 16, stand against 2 to 6 and hit against 7 or higher. With an ace counted as eleven,
-          hit 17 or less, hit 18 against a 9, a ten or an ace, and stand on 19 or more.
+          Stand on 17 or more. On 12, stand against a dealer 4, 5 or 6 and hit against anything
+          else. On 13 to 16, stand against 2 to 6 and hit against 7 or higher. With an ace counted
+          as eleven, hit 17 or less, hit 18 against a 9, a ten or an ace, and stand on 19 or more.
         </p>
         <p>
-          If you know the usual chart, two things change. Every hand you would double you now just
-          hit, and a pair is only its total. A pair of eights is a hard 16, and you hit it against a
-          ten, grimly.
+          If you know the usual chart, two things change. A hard 9, 10 or 11 you would double you
+          now just hit, a soft 18 you would double against a 3 to 6 you stand on, and a pair is only
+          its total. A pair of eights is a hard 16, and you hit it against a ten, grimly.
         </p>
         <p>
           That is the whole strategy the {millions} hands were played with. Play any other way and
