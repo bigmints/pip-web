@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, Section, Src } from '@/components/marketing/LegalPage'
+import { Correction, LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import { membershipFor } from '@/config/membership'
 import { ENDING_HANDS, MAX_SLOW_GAMES, MOVE_HOURS, SLOW_SEATS } from '@/lib/multiplayer/slow'
@@ -24,6 +24,15 @@ export default function TurnBasedPokerPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="26 October 2026">
+        <p>
+          Two things below stopped being true within three days. Since 25 October anyone with a free
+          Pip account can host one slow game at a time, and open one live room a day; the membership
+          hosts as many as you like. And since 24 October a slow table has camera and voice, the
+          same as a live room, for when you both happen to be there.
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           A slow game is a private Texas Hold’em table where each move gets hours, not seconds. You
