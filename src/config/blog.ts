@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'blackjack-house-edge-hit-or-stand',
+    title: 'The house edge in Blackjack when you can only hit or stand',
+    description:
+      'Pip’s Blackjack has no doubling and no splitting, and each table states its house edge. We played 40 million hands a table to check: one card was right and two said the house took more than it does. The numbers, what each rule is worth, and the whole strategy in a paragraph.',
+    date: '2026-10-26',
+  },
+  {
     slug: 'turn-based-poker-with-friends',
     title: 'Turn-based poker with friends who are never free at once',
     description:
