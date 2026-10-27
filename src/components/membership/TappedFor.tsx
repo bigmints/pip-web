@@ -33,6 +33,9 @@
 // whose blurb names all four, so it names its family too (`&table=`,
 // `tappedFamily`): the family's own note from the shelf, and its tables.
 //
+// A tap on a Deep Stack table lists its five prices (`TappedDeepStack`), each
+// against the ladder table it is taken from.
+//
 // A tap on Five-Card Draw deals one hand through the draw (`TappedDraw`),
 // loaded the same way as the Omaha showdown, and a tap on The Split one Hi-Lo
 // showdown where the pot is cut in half (`TappedHiLo`).
@@ -76,6 +79,10 @@ const TappedShortDeck = dynamic(() => import('./TappedShortDeck').then((m) => m.
 })
 
 const TappedHiLo = dynamic(() => import('./TappedHiLo').then((m) => m.TappedHiLo), {
+  ssr: false,
+})
+
+const TappedDeepStack = dynamic(() => import('./TappedDeepStack').then((m) => m.TappedDeepStack), {
   ssr: false,
 })
 
@@ -149,6 +156,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
             {new Intl.ListFormat('en-GB').format(familyTableNames(family))}.
           </p>
         )}
+        {feature.id === 'rooms' && <TappedDeepStack />}
         {lesson && <TappedLesson search={search} />}
         {shopItem && <TappedShopItem search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
