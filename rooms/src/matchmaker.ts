@@ -25,11 +25,14 @@ import {
 import { roomVenue } from '@/lib/multiplayer/room'
 import { identify, isMember } from './auth'
 import type { Env } from './env'
+import { claimFree, releaseFree, type FreeClaim } from './free'
 import type { InitBody } from './room'
 
 interface Attachment {
   userId: string | null
   venueId: string
+  /** Today's free quick match, held while they wait and handed back if they leave unmatched. */
+  free?: FreeClaim | null
 }
 
 export class Matchmaker extends DurableObject<Env> {
@@ -107,6 +110,8 @@ export class Matchmaker extends DurableObject<Env> {
       for (const ws of this.ctx.getWebSockets()) {
         const a = ws.deserializeAttachment() as Attachment
         if (a.userId && seated.has(a.userId)) {
+          // Seated: a free quick match is spent for good.
+          ws.serializeAttachment({ ...a, free: null } satisfies Attachment)
           this.send(ws, { t: 'matched', code })
           ws.close(1000, 'matched')
         }
@@ -138,6 +143,7 @@ export class Matchmaker extends DurableObject<Env> {
     if (msg.t === 'leave') {
       const userId = a.userId
       if (userId) await this.exclusively(async (current) => dequeue(current, userId), a.venueId)
+      await this.handBack(ws)
       ws.close(1000, 'left')
       return
     }
@@ -145,13 +151,27 @@ export class Matchmaker extends DurableObject<Env> {
 
     const userId = await identify(msg.token, this.env)
     if (!userId) return this.fail(ws, 'auth')
-    // Quick match is the membership's: strangers at a table we run.
-    if (!(await isMember(userId, msg.token, this.env))) return this.fail(ws, 'members-only')
+    // Quick match is the membership's, and one a day for anybody else.
+    let free: FreeClaim | null = null
+    if (!(await isMember(userId, msg.token, this.env))) {
+      // A second tab takes over the first one's claim rather than spending another.
+      const before = this.ctx
+        .getWebSockets()
+        .map((o) => [o, o.deserializeAttachment() as Attachment] as const)
+        .find(([o, oa]) => o !== ws && oa.userId === userId && oa.free)
+      if (before) {
+        free = before[1].free!
+        before[0].serializeAttachment({ ...before[1], free: null } satisfies Attachment)
+      } else {
+        free = await claimFree(this.env, userId, 'quick')
+        if (!free) return this.fail(ws, 'free-quick-used')
+      }
+    }
     for (const other of this.ctx.getWebSockets()) {
       const o = other.deserializeAttachment() as Attachment
       if (other !== ws && o.userId === userId) other.close(4001, 'replaced')
     }
-    ws.serializeAttachment({ userId, venueId: a.venueId } satisfies Attachment)
+    ws.serializeAttachment({ userId, venueId: a.venueId, free } satisfies Attachment)
     const joiner = { userId, name: msg.name, avatar: msg.avatar, ring: msg.ring }
     await this.exclusively(async (current) => enqueue(current, joiner, Date.now()), a.venueId)
   }
@@ -185,12 +205,21 @@ export class Matchmaker extends DurableObject<Env> {
   private async dropped(ws: WebSocket): Promise<void> {
     const a = ws.deserializeAttachment() as Attachment | null
     if (!a?.userId) return
+    await this.handBack(ws)
     const elsewhere = this.ctx
       .getWebSockets()
       .some((o) => o !== ws && (o.deserializeAttachment() as Attachment).userId === a.userId)
     if (elsewhere) return
     const userId = a.userId
     await this.exclusively(async (q) => dequeue(q, userId), a.venueId)
+  }
+
+  /** Out of line without a table: a free quick match held for them is theirs again. */
+  private async handBack(ws: WebSocket): Promise<void> {
+    const a = ws.deserializeAttachment() as Attachment | null
+    if (!a?.userId || !a.free) return
+    ws.serializeAttachment({ ...a, free: null } satisfies Attachment)
+    await releaseFree(this.env, a.userId, a.free)
   }
 
   async alarm(): Promise<void> {

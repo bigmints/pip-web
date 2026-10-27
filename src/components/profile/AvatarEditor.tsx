@@ -1,8 +1,12 @@
 'use client'
 
+import { useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Shuffle } from 'lucide-react'
+import { Lock, Shuffle, SlidersHorizontal } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { AvatarCustomiser } from '@/components/profile/AvatarCustomiser'
+import { membershipFor } from '@/config/membership'
 import {
   AVATAR_BG_SWATCH_NAMES,
   AVATAR_BG_SWATCHES,
@@ -11,6 +15,7 @@ import {
 } from '@/lib/avatar'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+import { useEntitlement } from '@/store/entitlement'
 
 /** Controlled avatar + name editor, shared by onboarding and the profile dialog. */
 export function AvatarEditor({
@@ -21,6 +26,7 @@ export function AvatarEditor({
   onSubmit,
   avatarSize = 132,
   compact = false,
+  customise = false,
 }: {
   spec: AvatarSpec
   name: string
@@ -34,10 +40,21 @@ export function AvatarEditor({
    * the roomy default. Same elements either way, only the spacing changes.
    */
   compact?: boolean
+  /**
+   * Offer the part-by-part picker, which is the membership's (pip-web#259).
+   * The profile dialog only: onboarding is a first face on the way to a first
+   * hand, and Shuffle is the right tool for that.
+   */
+  customise?: boolean
 }) {
+  const member = useEntitlement()
+  const [open, setOpen] = useState(false)
+  const [lockShown, setLockShown] = useState(false)
+
+  // A new face is a new face: Shuffle clears anything picked by hand too.
   const shuffle = () => {
     sound.play('tap')
-    onSpecChange({ ...spec, seed: freshSeed() })
+    onSpecChange({ seed: freshSeed(), backgroundColor: spec.backgroundColor })
   }
 
   return (
@@ -50,16 +67,52 @@ export function AvatarEditor({
         <PlayerAvatar spec={spec} size={avatarSize} />
       </motion.div>
 
-      <button
-        type="button"
-        onClick={shuffle}
-        className={cn(
-          'flex items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-medium text-foreground transition hover:bg-foreground/10 active:scale-95',
-          compact ? 'py-1.5' : 'py-2',
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={shuffle}
+          className={cn(
+            'flex items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-medium text-foreground transition hover:bg-foreground/10 active:scale-95',
+            compact ? 'py-1.5' : 'py-2',
+          )}
+        >
+          <Shuffle className="size-4" /> Shuffle
+        </button>
+        {customise && (
+          <button
+            type="button"
+            onClick={() => {
+              sound.play('tap')
+              if (member) setOpen(true)
+              else setLockShown((shown) => !shown)
+            }}
+            className={cn(
+              'flex items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-medium text-foreground transition hover:bg-foreground/10 active:scale-95',
+              compact ? 'py-1.5' : 'py-2',
+            )}
+          >
+            {member ? <SlidersHorizontal className="size-4" /> : <Lock className="size-4" />}
+            Customise
+          </button>
         )}
-      >
-        <Shuffle className="size-4" /> Shuffle
-      </button>
+      </div>
+
+      {customise && member && (
+        <AvatarCustomiser open={open} onOpenChange={setOpen} spec={spec} onDone={onSpecChange} />
+      )}
+
+      {customise && !member && lockShown && (
+        <p className="text-center text-sm text-muted-foreground">
+          Picking each feature comes with the membership.{' '}
+          <Link
+            href={membershipFor('avatar')}
+            onClick={() => sound.play('tap')}
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            Membership
+          </Link>
+        </p>
+      )}
 
       <div className="flex gap-2">
         {AVATAR_BG_SWATCHES.map((swatch) => {

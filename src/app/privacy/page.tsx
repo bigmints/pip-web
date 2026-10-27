@@ -33,8 +33,9 @@ export default function PrivacyPage() {
         <p>
           Pip has an optional account. It carries your progress to another device, and it is what a{' '}
           <A href="/membership">membership</A> belongs to if you take one. It is off unless you turn
-          it on, in Settings, under Account. Until then Pip makes no request to us at all, holds no
-          identity for you, and there is no row anywhere with your name on it.
+          it on, in Settings, under Account. Until then the only thing Pip sends us is a count of
+          hands played (see What we count), it holds no identity for you, and there is no row
+          anywhere with your name on it.
         </p>
         <p>
           Turn it on and we store two things:{' '}
@@ -155,21 +156,28 @@ export default function PrivacyPage() {
           keep a handful of anonymous, aggregate counts through <A href="https://umami.is">Umami</A>
           , a privacy-first, cookieless analytics tool. It records page views and a few milestones:
           someone made a profile, someone played their first hand, someone created an account, two
-          devices disagreed about a Roll, someone tried to sign in, and whether a sign-in reached
-          our servers at all. Those last two are there because a sign-in that fails on a bad network
-          looks exactly like nobody wanting an account, and we would rather know the difference. We
-          count the tries so we know whether the failures are rare. For the membership we count four
-          steps: someone opened the membership page, someone went to pay, someone came back from
-          paying, and a membership started. Paying needs an account, so we also count whether they
-          were signed out when they opened it, and whether they tapped to create an account from it.
-          That tells us where people stop, not who they are. No cookies, no fingerprinting, no
-          personal data, and never anything you typed or any message we got back. We can’t tie any
-          of it to a person, including you. It exists so we can improve the game, and for nothing
-          else. It’s never sold or shared.
+          devices disagreed about a Roll, someone claimed a daily reward, someone tried to sign in,
+          and whether a sign-in reached our servers at all. Those last two are there because a
+          sign-in that fails on a bad network looks exactly like nobody wanting an account, and we
+          would rather know the difference. We count the tries so we know whether the failures are
+          rare. For the membership we count four steps: someone opened the membership page, someone
+          went to pay, someone came back from paying, and a membership started. Paying needs an
+          account, so we also count whether they were signed out when they opened it, and whether
+          they tapped to create an account from it. That tells us where people stop, not who they
+          are. No cookies, no fingerprinting, no personal data, and never anything you typed or any
+          message we got back. We can’t tie any of it to a person, including you. It exists so we
+          can improve the game, and for nothing else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t
           keep our own copy beyond that.
+        </p>
+        <p>
+          The home page says how many hands have been played on Pip. For that, every ten hands the
+          game sends our server one number: how many hands it is reporting. No id, no profile, no
+          name, nothing about the hands themselves. Your internet address is held in memory for a
+          minute so one place cannot send the number over and over, and it is not stored.
+          Multiplayer tables count their own hands on our server.
         </p>
       </Section>
 

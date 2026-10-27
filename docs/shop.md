@@ -4,6 +4,17 @@
 > backs in `src/config/cardBacks.ts`; purchases persist in the profile
 > (`owned` / `deckFace` / `tableFinish`, `PERSIST_VERSION` 10); the shop opens
 > from the home screen (`ShopDialog`), with Pearl behind the counter.
+>
+> **Layout (2026-10-25):** a roomy picker like the avatar Customise
+> (`ROOMY_DIALOG` + `PillTabs` in `components/ui/picker.tsx`). The selected item
+> is previewed big and in use on a stretch of table; the shelves are tabs over a
+> wrapping grid; one action button (Buy, Use, Take off, or why not). A buy takes
+> two taps, and a bought item goes straight on. What the shop says about an item
+> is `shopStatus` in `config/shop.ts`.
+>
+> **Streak items (2026-10-25):** five items carry `streakDay` and are earned by the daily
+> reward (docs/daily-reward.md), never sold. They sit on the shop's Streak tab, read
+> "Day 7" and so on until earned, and are held in `owned` once they are.
 
 ## The two rules (non-negotiable)
 
@@ -148,8 +159,10 @@ know the one).
 
 ## Follow-ups (discussed, deliberately not in v1)
 
-- Avatar gear (hats, glasses) — needs DiceBear option work in the creator. The
-  ring shipped instead (2026-09-21) because it needed none of that.
+- ~~Avatar gear (hats, glasses)~~ — shipped another way (2026-10-23): members pick
+  every part of the face, hats and glasses included, in the Customise dialog
+  (pip-web#259). It is the membership's, not a chip item — see
+  [membership.md](./membership.md#building-your-own-face).
 - Chip colourways — the bets on the felt are text, not discs, so this is a
   rendering feature wearing a cosmetic's clothes. Not a config entry.
 - Felt *patterns* — ruled out rather than pending: the finish is "flat, no

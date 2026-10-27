@@ -128,6 +128,16 @@ async function factsFor(ids: string[]): Promise<Map<string, Facts>> {
       .in('user_id', chunk)
     if (error) throw error
     for (const row of data ?? []) out.set(row.user_id as string, readFacts(row.state))
+    // Members get double the daily reward, and the reminder says what they get.
+    const { data: members, error: memberError } = await admin
+      .from('memberships')
+      .select('user_id, status')
+      .in('user_id', chunk)
+    if (memberError) throw memberError
+    for (const row of members ?? []) {
+      const facts = out.get(row.user_id as string)
+      if (facts) facts.member = ['active', 'trialing'].includes(row.status as string)
+    }
   }
   return out
 }

@@ -23,7 +23,7 @@ got?* and *Which hand wins?* — every written guide, the odds calculator, and s
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
 Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, eight more
 drill kinds (including the practice packs *Open or fold*, *Calling the river*, *Bet or check* and *Shove or fold*) plus the play-it-out mode, the across-sessions play report, the session review,
-spectating after you bust, **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), the members' shelf, and **multiplayer**: opening a private room for friends (camera and mic included) and quick match. Joining a member's room with a code needs only a free account (see below and [multiplayer.md](./multiplayer.md)).
+spectating after you bust, **building your avatar feature by feature** (below), **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), the members' shelf, and **multiplayer**: opening a private room for friends (camera and mic included) and quick match. Joining a member's room with a code needs only a free account (see below and [multiplayer.md](./multiplayer.md)).
 
 **The free half of the drills is where a beginner learns to read a hand, and the paid half
 is where they learn to price one** (Will, 2026-09-21). That is the line the two sides fall
@@ -105,16 +105,30 @@ to be told before it happened, not after.
 
 ## Multiplayer: the host pays, friends join free (2026-10-11)
 
-**Opening a private room and quick match are the membership's. Joining a member's room with
-its code needs a free account and nothing else** (Will, 2026-10-11). A member's game should
-never be short of players because their friends have not paid, and every friend sat at a
+**Opening rooms whenever you like, slow games and quick match are the membership's. Joining a
+room with its code needs a free account and nothing else** (Will, 2026-10-11). A member's game
+should never be short of players because their friends have not paid, and every friend sat at a
 member's table sees what the membership is.
+
+**Anyone with a free account can open one live private room a day** (Will, 2026-10-23, cmo#220):
+the same room a member opens, camera, voice and regulars included, and nothing at the table says
+who paid. **And one quick match a day, and one slow game they host open at a time** (Will,
+2026-10-25), to get more people playing other people. A slow game runs for days, so it is counted
+by what is open, not by day. Joining a friend's slow game was always free. Signed out, you cannot
+host.
 
 - **The gate is on the room server**, not the browser (`rooms/src/auth.ts`): creating a room
   and joining a queue read the `memberships` row with the service role. `useEntitlement()`
   only decides which buttons the hub shows.
-- **It is not in the daily free game.** A room is not one table you sit down to on your own;
-  `taste.ts` is unchanged and knows nothing about rooms.
+- **The free ones are counted on the room server too.** The decision is
+  `hostingAllowance()` in `lib/multiplayer/freeRoom.ts`; the account's `Player` object keeps the
+  UTC day the free room and the free quick match were last spent. The room is claimed when it is
+  created and handed back if creation fails; the quick match is claimed on joining the queue and
+  handed back if they leave it unmatched. The slow game is counted from the same object's index
+  of their slow games (the ones they host, lobby or playing). A table costs us money and seats
+  other people, so a browser count would not do.
+- **They are not the daily free game.** The free room, quick match, slow game and the free member
+  table (`taste.ts`) are separate allowances; spending one never spends another.
 - **Only for sale where it exists.** The `multiplayer` feature is `needs: 'rooms'`:
   `sellableFeatures()` leaves it out of any build without `NEXT_PUBLIC_ROOMS_URL`, so a page
   never sells tables the build cannot reach.
@@ -141,6 +155,15 @@ are left out: neither is one game you sit down to and finish. **Lessons are left
 - **What the cards say.** While unspent, the side-tables card reads *Free today* and opens
   like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
   game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
+
+## Double daily rewards (2026-10-25)
+
+Members get **double the chips** from the daily reward (docs/daily-reward.md), every day: six
+buy-ins at their table a day once the first week is done, against three. This
+is the first perk paid in chips, and it needed a ruling (Will, 2026-10-25): chips buy style and
+seats, never edge at a table, so doubling a gift of them is not pay-to-win. The streak items
+are the same for everybody, and nothing about the reward is sold for money. `daily-reward` is
+its entry in `MEMBERSHIP_FEATURES`.
 
 ## Where the answer comes from
 
@@ -312,6 +335,24 @@ link, *See your full report*, to `/membership?for=coaching`. The line is the rep
 leak (`lib/review/teaser.ts` over `deepRead`), never written for the card, and absent when the
 report has nothing to say. The test names `RunRecap.tsx` as the only file allowed, and checks
 it still takes `member` from the table rather than asking.
+
+## Building your own face
+
+**Everybody gets a face; members choose theirs one feature at a time** (pip-web#259,
+2026-10-23). Edit player has Shuffle for everyone and a **Customise** button beside it.
+For a member it opens `AvatarCustomiser`: hair (or a hat), eyes, brows, mouth, nose,
+glasses, beard, top and hands — the list is `AVATAR_PARTS` in `lib/avatarParts.ts`. For
+anyone else the button shows a lock and a link to `membershipFor('avatar')`, which opens
+`/membership` on its own card (the `avatar` entry in `MEMBERSHIP_FEATURES`).
+
+- **Nothing is taken from a non-member.** A shuffled face is unchanged, and an
+  `AvatarSpec` with no `features` draws exactly as it did before this existed.
+- **A lapsed member keeps the face they built.** The picks are stored on the spec and
+  keep drawing; only the Customise picker locks again. Same rule as anything chips
+  bought: the membership never repossesses a look.
+- **It is a look, not an edge.** Picked parts ride through rooms (checked by the
+  protocol with `parseFeatures`), review links, sync and the QR transfer, and change
+  nothing about a hand.
 
 ## The cosmetics denominator
 

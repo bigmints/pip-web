@@ -41,10 +41,10 @@ export function StreakBadge() {
   const best = Math.max(streak?.best ?? 0, run)
 
   const line = playedToday
-    ? `Played today. Play a hand tomorrow to make it ${run + 1}.`
+    ? `Done for today. Come back tomorrow to make it ${run + 1}.`
     : atRisk
-      ? `Play a hand before ${endOfDayLocal()} to keep it.`
-      : 'Play a hand at any table to start one. Each day in a row adds one.'
+      ? `Claim today's reward or play a hand before ${endOfDayLocal()} to keep it.`
+      : 'Claim the daily reward or play a hand to start one. Each day in a row adds one.'
 
   return (
     <>

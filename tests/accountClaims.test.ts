@@ -43,7 +43,8 @@ const allSources = (): string[] => {
  */
 const OFFER_SURFACES = [
   'src/components/learn/Guide.tsx',
-  'src/components/marketing/Landing.tsx',
+  // Not the landing page since 2026-10-25: Will took the line out from under
+  // the hero buttons as clutter. Its trust strip still offers the account.
   'src/app/play-poker-free-no-signup/page.tsx',
   // /daily, added with the page. Same test as the others: it is a page a
   // stranger can land on from search, and "do I need an account for this" is a

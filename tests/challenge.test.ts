@@ -110,8 +110,10 @@ test('the collection is 22, not the whole cast of 28', (t) => {
   // than being bent. The two numbers are here precisely so that a change can
   // be told apart: the left one growing is a new character, the right one
   // growing is a promise being broken.
+  //
+  // Maud, the streak's regular, is the eighth pin (2026-10-25): 30, still 22.
   const collectible = new Set(BANDS.flatMap((b) => challengeable(b).map((ch) => ch.id)))
-  t.is(CAST.length, 29)
+  t.is(CAST.length, 30)
   t.is(collectible.size, 22)
 })
 

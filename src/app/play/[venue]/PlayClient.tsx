@@ -111,7 +111,7 @@ export function PlayClient() {
     const refusal = refuseSitDown(venue, profile, deviceId(), member || tasting)
     if (refusal) {
       const back =
-        refusal === 'not-your-challenge'
+        refusal === 'not-your-challenge' || refusal === 'streak-locked'
           ? '/game'
           : refusal === 'members-only'
             ? (membershipForVenue(venue) ?? '/game/side')

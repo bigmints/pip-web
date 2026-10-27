@@ -15,7 +15,8 @@ collection is the story of your play.
 
 They are **not** XP, dailies, streak-bait, or a battle pass. A chip is earned once,
 quietly, and kept forever. (See docs/brand.md: calm information, premium restraint,
-no scam energy.)
+no scam energy.) The daily reward (docs/daily-reward.md) is a separate thing and pays in
+chips and streak items, never in award chips.
 
 ## Visual system
 

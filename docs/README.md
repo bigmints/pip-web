@@ -26,11 +26,11 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [membership.md](./membership.md) | What is paid and what is free, the gate, and the rules tests enforce |
 | [multiplayer.md](./multiplayer.md) | Private rooms and quick match: the room server, the authority model, camera and mic, and the runbook to switch it on |
 | [stripe.md](./stripe.md) | How payment is wired (Edge Functions, webhook, portal) and the runbook to switch it on |
-| [smoke-test-membership.md](./smoke-test-membership.md) | The by-hand checklist for the membership build — the part CI cannot see |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
 | [data-and-offline.md](./data-and-offline.md) | Persistence, profile backup/transfer (file / code / QR), and the offline PWA |
 | [sync.md](./sync.md) | The optional account: what syncs, the merge policy, and why sync is opt-in |
+| [daily-reward.md](./daily-reward.md) | The daily reward: the ladder, the streak items, members' double |
 | [email.md](./email.md) | The opt-in emails (Daily reminder, weekly summary): how they are decided, sent, unsubscribed, and switched on |
 | [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, deploy & releases |
 
@@ -49,7 +49,7 @@ If you change how it *looks*, you stay in components + theme tokens.
 
 ## Status & scope
 
-- **In scope / built:** onboarding, avatar creator, the Roll + venue ladder,
+- **In scope / built:** onboarding, avatar creator (Shuffle for everyone; members build theirs feature by feature), the Roll + venue ladder,
   full Hold'em vs AI, sit-and-go tournaments with a bankroll/rank economy + selectable currency, live equity, sound, motion, theming,
   card-back customization, an installable offline PWA, profile backup/transfer with no
   account (file / copyable code / scan-to-phone QR), an optional account for

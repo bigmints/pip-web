@@ -28,6 +28,7 @@ import {
   ChevronRight,
   ChartSpline,
   Eye,
+  Flame,
   GraduationCap,
   Hand,
   Lock,
@@ -40,6 +41,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { CardBack } from '@/components/CardBack'
+import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Reveal } from '@/components/Reveal'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
@@ -83,6 +85,8 @@ import {
   useStorePrices,
 } from '@/lib/membership/store'
 import { SHOP_ITEMS } from '@/config/shop'
+import type { AvatarSpec } from '@/lib/avatar'
+import { AVATAR_PARTS } from '@/lib/avatarParts'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
 import { formatChips } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -133,6 +137,7 @@ const PLAY: Record<string, Visual> = {
 
 /** The tools beside the game: an iOS settings-row icon each. */
 const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
+  'daily-reward': { icon: Flame, tint: '#FF8A3D' },
   lessons: { icon: GraduationCap, tint: '#3FA7B8' },
   drills: { icon: Target, tint: '#5B7FC7' },
   river: { icon: Spade, tint: '#C9873D' },
@@ -145,6 +150,7 @@ const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
 /** Have their own sections rather than a card or a row. */
 const SHELF_ID = 'cosmetics'
 const MULTIPLAYER_ID = 'multiplayer'
+const AVATAR_ID = 'avatar'
 
 /** What stays free, said as a list. Rule 1 in docs/membership.md is the long form. */
 const FREE_FOREVER = [
@@ -199,9 +205,12 @@ export function MembershipScreen() {
     .filter((f): f is MembershipFeature => Boolean(f))
   const shelf = sellable.find((f) => f.id === SHELF_ID)
   const multiplayer = sellable.find((f) => f.id === MULTIPLAYER_ID)
+  const avatar = sellable.find((f) => f.id === AVATAR_ID)
   // Anything shipped that has no card lands in the tools list, so a new
   // feature is on the page the moment it is marked shipped.
-  const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID && f.id !== MULTIPLAYER_ID)
+  const tools = sellable.filter(
+    (f) => !PLAY[f.id] && ![SHELF_ID, MULTIPLAYER_ID, AVATAR_ID].includes(f.id),
+  )
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
   // In the store app with purchases on, every price on the page is the store's,
@@ -274,8 +283,18 @@ export function MembershipScreen() {
             <PlayShelf features={play} />
           </Section>
 
+          {avatar && (
+            <Section id="avatar" eyebrow="Make it yours" title={avatar.title}>
+              <AvatarSpotlight feature={avatar} />
+            </Section>
+          )}
+
           {shelf && (
-            <Section id="shelf" eyebrow="Make it yours" title={shelf.title}>
+            <Section
+              id="shelf"
+              eyebrow={avatar ? 'And the table' : 'Make it yours'}
+              title={shelf.title}
+            >
               <Shelf feature={shelf} />
             </Section>
           )}
@@ -616,6 +635,102 @@ function ToolRow({ feature }: { feature: MembershipFeature }) {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{feature.blurb}</p>
       </div>
     </li>
+  )
+}
+
+// --- your own face -------------------------------------------------------------
+
+/**
+ * One face, changed a feature at a time, so the card shows what the picker
+ * does rather than five strangers. Fixed specs, not random: the page is the
+ * same for everybody and the markdown mirror never sees them anyway.
+ */
+const FACE_SEED = 'pip-membership-face'
+const FACES: readonly { label: string; spec: AvatarSpec }[] = [
+  { label: 'Shuffled', spec: { seed: FACE_SEED, backgroundColor: 'b6e3f4' } },
+  {
+    label: 'Glasses',
+    spec: { seed: FACE_SEED, backgroundColor: 'c0aede', features: { glasses: 'variant03' } },
+  },
+  {
+    label: 'A hat',
+    spec: {
+      seed: FACE_SEED,
+      backgroundColor: 'ffdfbf',
+      features: { glasses: 'variant03', hair: 'hat' },
+    },
+  },
+  {
+    label: 'A beard',
+    spec: {
+      seed: FACE_SEED,
+      backgroundColor: 'd1f4d0',
+      features: { glasses: 'variant03', hair: 'hat', beard: 'variant05' },
+    },
+  },
+  {
+    label: 'A wave',
+    spec: {
+      seed: FACE_SEED,
+      backgroundColor: 'ffd5dc',
+      features: {
+        glasses: 'variant03',
+        hair: 'hat',
+        beard: 'variant05',
+        gesture: 'waveLongArm',
+      },
+    },
+  },
+]
+
+function AvatarSpotlight({ feature }: { feature: MembershipFeature }) {
+  return (
+    <Reveal>
+      <div className="overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
+        <div
+          data-mirror="skip"
+          aria-hidden
+          className="flex items-end justify-center gap-3 overflow-hidden bg-[#0A0A0A] px-4 pb-8 pt-10 md:gap-8 md:pb-12 md:pt-14"
+        >
+          {FACES.map((face, i) => (
+            <motion.div
+              key={face.label}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ ...SPRING, delay: i * 0.06 }}
+              className={cn('flex flex-col items-center gap-2', i === 3 && 'hidden sm:flex')}
+            >
+              <PlayerAvatar
+                spec={face.spec}
+                size={i === FACES.length - 1 ? 112 : 80}
+                className={cn(
+                  'shadow-2xl shadow-black/60',
+                  i === FACES.length - 1 ? 'size-24 md:size-28' : 'size-14 md:size-20',
+                )}
+              />
+              <span className="text-xs text-muted-foreground">{face.label}</span>
+            </motion.div>
+          ))}
+        </div>
+        <div className="p-5 md:p-7">
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
+            {feature.blurb}
+          </p>
+          <ul className="mt-5 flex flex-wrap gap-2">
+            {AVATAR_PARTS.map(({ part, label, values }) => (
+              <li
+                key={part}
+                className="rounded-xl bg-foreground/[0.04] px-3.5 py-2 text-sm tabular-nums"
+              >
+                <span className="font-medium">{label}</span>{' '}
+                <span className="text-muted-foreground">· {values.length}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Reveal>
   )
 }
 
@@ -1395,13 +1510,22 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
         {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
           <Question q="Do my friends need a membership to play with me?">
             <p>
-              No. The member opens the room; everyone else joins with the code and a free Pip
-              account. Their buy-in comes out of their own Roll and their winnings go back into it,
-              exactly as on the ladder.
+              No. The host opens the room; everyone else joins with the code and a free Pip account.
+              Their buy-in comes out of their own Roll and their winnings go back into it, exactly
+              as on the ladder.
             </p>
             <p>
-              Quick match is for members. Camera and mic are only ever on in a room somebody opened
-              for their friends, never at a quick-match table.
+              Camera and mic are only ever on in a room somebody opened for their friends, never at
+              a quick-match table.
+            </p>
+          </Question>
+        )}
+        {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
+          <Question q="Can I host without a membership?">
+            <p>
+              Yes, a little. Anyone with a free Pip account can open one private room a day, camera
+              and voice included, play one quick match a day, and host one slow game at a time. The
+              membership opens as many of each as you like.
             </p>
           </Question>
         )}

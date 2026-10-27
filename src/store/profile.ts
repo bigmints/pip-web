@@ -22,6 +22,7 @@ import { track } from '@/lib/analytics'
 import { type PlayStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/streak'
 import { dailyDateKey } from '@/lib/daily'
 import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
+import { claimable, rewardFor, yourTable, type Reward, type RewardRecord } from '@/lib/dailyReward'
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
 export interface LifetimeStats {
@@ -269,6 +270,11 @@ export interface ProfileState {
    * membership itself still comes only from `useEntitlement()`.
    */
   taste: TasteRecord | null
+  /**
+   * The daily reward: the last UTC day one was claimed (lib/dailyReward).
+   * Client-written, like the Roll it pays into.
+   */
+  dailyReward: RewardRecord | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -344,6 +350,12 @@ export interface ProfileState {
    * opened: true if it was unspent (or already spent on this lesson today).
    */
   spendTaste: (today: string, target: TasteTarget) => boolean
+  /**
+   * Claim today's daily reward: counts today for the streak, pays the chips
+   * into the Roll and hands over a streak item if one is due. Returns what was
+   * given, or null if today's was already claimed.
+   */
+  claimDailyReward: (today: string, member: boolean) => Reward | null
   /** Fold one reviewed hand into the career table of priced decisions. */
   recordReviewHand: (hand: ReviewHand) => void
   reset: () => void
@@ -352,7 +364,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 26
+export const PERSIST_VERSION = 28
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -402,6 +414,7 @@ export const useProfile = create<ProfileState>()(
       reviewStats: emptyReviewStats(),
       blackjack: null,
       taste: null,
+      dailyReward: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -592,6 +605,22 @@ export const useProfile = create<ProfileState>()(
         if (next !== get().taste) set({ taste: next })
         return true
       },
+      claimDailyReward: (today, member) => {
+        const s = get()
+        if (!claimable(s.dailyReward, today)) return null
+        const streak = recordPlay(s.streak ?? emptyStreak(), today)
+        const reward = rewardFor(streak.current, yourTable(s.venueRecords).buyIn, member)
+        const gift = reward.unlock && !s.owned.includes(reward.unlock.id) ? reward.unlock.id : null
+        // A gift, not winnings: the Roll goes up and the peak (rank) does not.
+        set({
+          dailyReward: { lastClaim: today },
+          streak,
+          roll: s.roll + reward.chips,
+          ...(gift ? { owned: [...s.owned, gift] } : {}),
+        })
+        track('daily-reward-claimed')
+        return reward
+      },
       recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
       reset: () =>
         set({
@@ -629,6 +658,7 @@ export const useProfile = create<ProfileState>()(
           reviewStats: emptyReviewStats(),
           blackjack: null,
           taste: null,
+          dailyReward: null,
         }),
     }),
     {
@@ -795,6 +825,11 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // v25 → v26: the win % became something you can switch off. Everybody keeps
   // seeing it until they do.
   if (fromVersion < 26) s.showOdds = true
+  // v26 → v27: an avatar can carry `features`, the parts a member picked by
+  // hand (pip-web#259). Absent means the seed draws every part, which is what
+  // every older avatar already is, so there is nothing to write.
+  // v27 → v28: the daily reward (lib/dailyReward). Never claimed.
+  if (fromVersion < 28) s.dailyReward = null
   return s
 }
 

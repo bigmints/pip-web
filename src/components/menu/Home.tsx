@@ -32,7 +32,8 @@ import { loadTableSnapshot } from '@/store/game'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
 import { roomsConfigured } from '@/lib/multiplayer/client'
-import { StreakBadge } from '@/components/StreakBadge'
+import { DailyRewardSlot } from './DailyReward'
+import { RegularsCard } from './RegularsCard'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -142,7 +143,7 @@ export function Home() {
             )}
           </div>
         )}
-        <StreakBadge />
+        <DailyRewardSlot />
         {/* A first visit deals you in as "Player" with a random face
             (onboarding/firstSeat). This is where you change that: furniture
             under the Roll, gone once you have a name. */}
@@ -283,6 +284,8 @@ export function Home() {
             {challenge && pick?.kind !== 'challenge' && (
               <ChallengeCard challenge={challenge} delay={0.3} />
             )}
+            {/* Opened by a 21-day streak (lib/dailyReward); absent until then. */}
+            {hydrated && <RegularsCard delay={0.32} />}
           </div>
         </div>
 

@@ -60,7 +60,8 @@ export function TappedMultiplayer() {
       </p>
       <RuleList rules={SLOW_RULES} />
       <p className="mt-4 text-sm text-muted-foreground">
-        Everyone at the table can read them. In a private room, only the host needs the membership.
+        Everyone at the table can read them. In a private room, only the host needs a room: one a
+        day is free, the membership opens more.
       </p>
     </figure>
   )

@@ -81,6 +81,7 @@ export function StyleDialog({
    * one link lives on /membership.
    */
   const lockLine = (item: Cosmetic): string => {
+    if (item.streakDay) return `${item.name} comes with a ${item.streakDay}-day streak.`
     if (item.membersOnly && item.price > 0) {
       return member
         ? `${item.name} is on the members' shelf — ${money(item.price)} chips.`
@@ -94,6 +95,7 @@ export function StyleDialog({
     const venue = design.unlock?.venueWin ? venueById(design.unlock.venueWin) : undefined
     const unlock = design.unlock
     if (!unlock) return design.name
+    if (unlock.streakDay) return `${design.name} comes with a ${unlock.streakDay}-day streak.`
     if (unlock.price !== undefined) {
       if (unlock.membersOnly) {
         return lockLine({

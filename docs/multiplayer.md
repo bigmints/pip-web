@@ -10,7 +10,7 @@ There are two ways to a table with people at it:
 
 - **Private rooms.** A member opens a room at a ladder stake and gets a six-character code.
   Friends join with the code and a free account. The host can add regulars from the cast to
-  any empty chair, then deals. **Camera and mic are available here only.**
+  any empty chair, then deals. **Camera and mic are available here and in slow games.**
 - **Quick match.** A member picks a ladder stake and joins that stake's queue. A table
   starts the moment it is full. If it hasn't filled once the first person in line has waited
   30 seconds, AI players take the empty chairs. There is no camera or mic.
@@ -34,7 +34,10 @@ table ever sees another player's Roll or rank.
 
 | | | |
 |---|---|---|
-| Who pays | **Only the host.** Friends join free with an account. Quick match is members only. | 2026-10-11 |
+| Who pays | **Only the host.** Friends join free with an account. | 2026-10-11 |
+| Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). | 2026-10-23 |
+| Free quick match and slow game | **One quick match a day, and one hosted slow game open at a time**, for any account. | 2026-10-25 |
+| Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |
 | Format | **Sit-and-go**, at ladder venue stakes. | 2026-10-11 |
 | Chips | **The Roll**, and nobody sees anybody else's Roll or rank. | 2026-10-06 |
 | Bots | **Quick match fills with AI strangers** (tagged "AI") after about 30 seconds. **A host may add the cast to a private room.** | 2026-10-11 |
@@ -137,14 +140,22 @@ The engine is imported unchanged. What runs on the server is what is in the publ
 
 - **`index.ts`**, the front door. Every socket and every room creation must come from an origin
   in `ALLOWED_ORIGINS`.
-  - `POST /rooms` creates a room. It needs a bearer token and membership.
+  - `POST /rooms` creates a room. It needs a bearer token and membership, or the free one of
+    that kind (`free-room-used` / `free-slow-used` once spent; the `Player` object keeps them).
+  - `GET /free` says what is left of the free hosting (`{ room, quick, slow }`), for the hub.
+    `GET /free-room` is the old form, kept for a cached page.
   - `GET /rooms/:code` returns a peek for the join screen.
   - `GET /rooms/:code/ws` is a table's socket.
   - `GET /queue/:venueId/ws` is a stake's queue.
+  - `GET /hands` is the hands-played count the landing page shows (its function reads it
+    server-side and caches it for five minutes). `POST /hands` is the game reporting its hands
+    against the cast, ten at a time, anonymously: capped at 20 a report, one report a minute
+    per address.
 - **`room.ts`, the `PokerRoom` Durable Object** (one per code):
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
-  - it relays WebRTC signalling and camera/mic state, in private rooms only.
+  - it relays WebRTC signalling and camera/mic state, in private rooms and slow games
+    (`hosted()`: the tables friends share by code), never at quick match.
 
   It uses the Hibernation API. Memory is lost when the object sleeps, so the state is read back
   from storage and each socket carries who it is in its attachment.
@@ -157,6 +168,11 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   - it opens a `PokerRoom` with the matched accounts reserved, and sends them its code;
   - its changes run inside `blockConcurrencyWhile`, because opening a room is a request to
     another object.
+- **`tally.ts`, the `Tally` Durable Object** (one, named `all`): the hands-played count, as
+  `ai` and `people`, on top of `BACKFILL` in `src/lib/handCount.ts` (what was played before it
+  existed, partly estimated; the comment says how). A room adds each hand it deals, by how many
+  people were really playing it: a person who has left, or has run out of time twice in a row,
+  does not count, so a table everybody walked away from (it deals on by itself) adds nothing.
 - **`auth.ts`:**
   - `identify(token)` asks Supabase `/auth/v1/user`, once per socket;
   - `isMember` reads `memberships` with the service role and decides with the same
@@ -180,8 +196,10 @@ Timings live in `room.ts`:
 
 ## Camera and microphone
 
-Camera and mic are for **private rooms only**, and both are **off until the player taps
-them**. That tap is also what lets iOS and Android play the other seats' audio.
+Camera and mic are for **private rooms and slow games** (the rooms friends share by code,
+`hosted()`), never quick match, and both are **off until the player taps them**. At a slow game
+they connect whoever has the table open at the same moment, so a stretch played live can be
+played face to face (added 2026-10-24). That tap is also what lets iOS and Android play the other seats' audio.
 
 - **How they connect** (`store/media.ts`):
   - every pair of players gets a direct peer-to-peer connection, using the "perfect
@@ -204,7 +222,7 @@ them**. That tap is also what lets iOS and Android play the other seats' audio.
 
 ## Reporting, blocking and muting (2026-10-11)
 
-For App Store guideline 1.2, and because people deserve them. Tap any person at a private
+For App Store guideline 1.2, and because people deserve them. Tap any person at a private or slow
 table, or their face in the lobby, for `PlayerSheet`:
 
 - **Mute** and **Hide their camera**: for you only, in `store/media.ts`; nothing is sent.
@@ -223,7 +241,7 @@ only the service role reads or writes them. Read reports in the Supabase table e
 
 | Path | What it is |
 |---|---|
-| `/game/multiplayer` (`MultiplayerHub`) | Open a room, type a code, quick match. Everybody can see it; opening a room and quick match ask for the membership. |
+| `/game/multiplayer` (`MultiplayerHub`) | Open a room, type a code, quick match. Everybody can see it; quick match, slow games and a second room in a day ask for the membership. |
 | `/game/room?code=…` (`RoomScreen`) | The code is in the query string because the site is a static export. Sitting down is a tap (`JoinGate`). A host or a matched player is seated straight from the hub. |
 | `RoomLobby` | The felt with the chairs filling, and the code on the cloth. |
 | `RoomTable` | The live table's own parts, turned so you sit at the near rail. |
@@ -289,6 +307,13 @@ mostly the Workers Paid base. Hibernation removes most of the duration charge.
 
 TURN is $0.05/GB after the first 1,000 GB a month free, shared with the SFU. Only sessions that
 cannot connect directly use it.
+
+**Camera and voice, per free room (estimate, 2026-10-23, nothing measured).** Media is a
+peer-to-peer mesh at 320x240, 15 fps (`store/media.ts`), roughly 0.5 Mbps a stream with voice.
+Only relayed streams cost anything. Worst case, all four seats relayed: about 2.7 GB a room-hour.
+At 50 free rooms a day of an hour each that is about 4,000 GB a month, about $150 past the free
+1,000 GB. At a typical 15-20% relayed it is 600-800 GB, inside the free allowance. Watch the
+Realtime TURN usage page; a free-room time cap is the first fix if it climbs.
 
 ## By hand: what CI cannot see
 

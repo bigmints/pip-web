@@ -241,6 +241,27 @@ export function RoomTable({
     slow && myTurn && view.dueAt !== null && view.dueKind === 'turn'
       ? `${timeLeft(view.dueAt - clockOffset - now)} left`
       : null
+  // Whose move it is, in words, over the buttons. The early-move row under it
+  // has a Check in it, and to somebody new to poker that reads as their turn.
+  const actor = activeId ? hand.players.find((p) => p.id === activeId) : undefined
+  const theirLeft =
+    slow && !myTurn && view.dueAt !== null && view.dueKind === 'turn'
+      ? timeLeft(view.dueAt - clockOffset - now)
+      : null
+  const turnLine =
+    hero && actor && !catching ? (
+      myTurn ? (
+        <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+          <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+          Your move
+        </span>
+      ) : (
+        <span className="text-muted-foreground">
+          Waiting for {actor.name}
+          {theirLeft && ` · ${theirLeft} to move`}
+        </span>
+      )
+    ) : null
   const helpButton = (
     <AppBarAction
       label="Hand rankings"
@@ -405,6 +426,15 @@ export function RoomTable({
                 : 'mx-auto max-w-xl px-6 pt-4 pb-7',
             )}
           >
+            {/* Always the same height, so the buttons never jump as the turn moves. */}
+            {hero && !catching && (
+              <p
+                aria-live="polite"
+                className="mb-2 flex min-h-5 items-center justify-center text-center text-xs"
+              >
+                {turnLine}
+              </p>
+            )}
             {catching ? (
               // What you missed, playing: the way back to the live table.
               <div className="flex h-[56px] items-center justify-between gap-3 rounded-2xl bg-foreground/[0.04] px-4 ring-1 ring-foreground/10">

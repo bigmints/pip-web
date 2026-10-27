@@ -18,6 +18,7 @@ import { DurableObject } from 'cloudflare:workers'
 import {
   act,
   addBots,
+  AWAY_AFTER_TIMEOUTS,
   block,
   blockedBetween,
   configure,
@@ -33,6 +34,7 @@ import {
   setPre,
   setQuiet,
   start,
+  hosted,
   tick,
   type Joiner,
   type Result,
@@ -54,6 +56,8 @@ import { quietOf, type PlayPrefs } from '@/lib/multiplayer/notices'
 import { MAX_SLOW_GAMES, type Quiet } from '@/lib/multiplayer/slow'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
+import { countRoomHands } from './tally'
+import { roomBucket } from '@/lib/handCount'
 import { cryptoRng } from '@/lib/cryptoRng'
 import { json, playerStub, type Env } from './env'
 
@@ -107,7 +111,23 @@ export class PokerRoom extends DurableObject<Env> {
   }
 
   private async save(next: RoomState, leaving?: WebSocket): Promise<void> {
+    const before = this.room
     this.room = next
+    // A new hand dealt: add it to the landing page's count, by who it was
+    // dealt to. Only people actually playing: a table everybody has walked
+    // away from deals on by itself on the away clock, thousands of hands
+    // nobody played. `connected` cannot tell (it stays true when a server
+    // restart drops the socket, and a slow game's players are never on one),
+    // but turns run out in a row can. Not awaited — a count never holds up a table.
+    if (before && next.handIndex > before.handIndex) {
+      const there = next.players.filter(
+        (p) => !p.bot && !p.left && p.place === null && p.timeouts < AWAY_AFTER_TIMEOUTS,
+      )
+      const bucket = roomBucket(there.length)
+      if (bucket) {
+        this.ctx.waitUntil(countRoomHands(this.env, bucket, next.handIndex - before.handIndex))
+      }
+    }
     if (next.kind === 'slow') await this.index(next, leaving)
     if (next.phase === 'closed') {
       for (const ws of this.ctx.getWebSockets()) ws.close(4004, 'closed')
@@ -371,7 +391,7 @@ export class PokerRoom extends DurableObject<Env> {
       ws.serializeAttachment({ userId, playerId, media: OFF } satisfies Attachment)
       await this.save(result.state)
       this.broadcast(result.state)
-      if (current.kind === 'private') {
+      if (hosted(current)) {
         this.broadcastMedia()
         const iceServers = await this.iceServers()
         this.send(ws, { t: 'ice', iceServers })
@@ -420,9 +440,10 @@ export class PokerRoom extends DurableObject<Env> {
         return
       }
       case 'media': {
-        // Camera and mic are for friends who invited each other, never for a
-        // table of strangers the matchmaker put together.
-        if (room.kind !== 'private') return this.fail(ws, 'illegal')
+        // Camera and mic are for friends who invited each other (a private
+        // room or a slow game), never for a table of strangers the matchmaker
+        // put together.
+        if (!hosted(room)) return this.fail(ws, 'illegal')
         ws.serializeAttachment({ ...a, media: msg.media } satisfies Attachment)
         return this.broadcastMedia()
       }
@@ -451,7 +472,7 @@ export class PokerRoom extends DurableObject<Env> {
         return this.send(ws, { t: 'reported' })
       }
       case 'signal': {
-        if (room.kind !== 'private' || !a.playerId) return this.fail(ws, 'illegal')
+        if (!hosted(room) || !a.playerId) return this.fail(ws, 'illegal')
         for (const other of this.ctx.getWebSockets()) {
           const o = other.deserializeAttachment() as Attachment
           if (o.userId && blockedBetween(room, userId, o.userId)) continue
@@ -485,7 +506,7 @@ export class PokerRoom extends DurableObject<Env> {
     const next = disconnect(room, a.userId, Date.now())
     await this.save(next, ws)
     this.broadcast(next)
-    if (room.kind === 'private') this.broadcastMedia()
+    if (hosted(room)) this.broadcastMedia()
   }
 
   async alarm(): Promise<void> {
@@ -521,7 +542,13 @@ export class PokerRoom extends DurableObject<Env> {
     }
     let next: RoomState
     try {
-      next = tick(room, now, cryptoRng)
+      const present = new Set(
+        this.ctx
+          .getWebSockets()
+          .map((ws) => (ws.deserializeAttachment() as Attachment).userId)
+          .filter((u): u is string => u !== null),
+      )
+      next = tick(room, now, cryptoRng, present)
     } catch (e) {
       // Never throw out of here: Cloudflare retries a failed alarm after 2 s,
       // then 4, 8, 16..., which is the table frozen for half a minute. Try

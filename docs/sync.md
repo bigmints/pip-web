@@ -12,6 +12,8 @@ This document is the why. The code is `src/lib/sync/*`, `src/store/sync.ts` and
 1. **Opt-in is absolute.** No account means no client, no request, no identity and no stored row.
    Not "we don't track you much", literally no network call. That is what makes the privacy claim
    checkable rather than promised.
+   (The one request a guest does make is the anonymous hands-played count, `src/lib/handTally.ts`:
+   a bare number to the room server, never the sync client. /privacy describes it.)
 2. **Signed out is a first-class state, permanently.** No modal, no interstitial, nothing that
    appears over what the player was doing or comes back after being closed. Everything about the
    account is visible where they already are (below).

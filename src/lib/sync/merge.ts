@@ -26,6 +26,7 @@ import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
 import { mergeStreaks, streakFromDaily } from '@/lib/streak'
 import { mergeTaste } from '@/lib/membership/taste'
+import { mergeRewards } from '@/lib/dailyReward'
 import { STARTING_ROLL } from '@/config/venues'
 import { hasPlaceholderName } from '@/lib/newPlayer'
 
@@ -176,6 +177,8 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // The daily free member game, for the same reason: a spent game stays
     // spent, or signing in on a second device is a way to get another.
     taste: mergeTaste(local.taste, remote.taste),
+    // A claimed reward stays claimed, for the same reason.
+    dailyReward: mergeRewards(local.dailyReward, remote.dailyReward),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -467,6 +470,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'daily',
     'streak',
     'taste',
+    'dailyReward',
     'challengeWins',
     'challengesPlayed',
     'drills',

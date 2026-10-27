@@ -21,6 +21,7 @@
 
 import type { Card } from '@/lib/poker/cards'
 import type { HandState, Player, Street } from '@/lib/poker/engine'
+import type { AvatarSpec } from '@/lib/avatar'
 import type { HandRecord } from '@/store/game'
 
 export const HERO_ID = 'hero'
@@ -28,7 +29,7 @@ export const HERO_ID = 'hero'
 export interface ReplayStep {
   hand: HandState
   /** The seat metadata the felt needs: who they are and what they look like. */
-  seats: { id: string; name: string; avatar: { seed: string; backgroundColor: string } }[]
+  seats: { id: string; name: string; avatar: AvatarSpec }[]
   /** Chips in the middle. Null for a record that never kept them. */
   pot: number | null
   /**

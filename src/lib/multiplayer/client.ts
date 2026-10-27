@@ -6,6 +6,7 @@
 
 import { getSupabase } from '@/lib/sync/client'
 import type { AvatarSpec } from '@/lib/avatar'
+import type { FreeLeft } from './freeRoom'
 import type { PlayPrefs } from './notices'
 import type { RoomKind, RoomSettings } from './room'
 import type { SlowCard } from './slowCard'
@@ -139,6 +140,11 @@ async function mine<T>(path: string, body?: unknown): Promise<T | null> {
   } catch {
     return null
   }
+}
+
+/** What is left of your free hosting. Null when it could not be asked: the server decides anyway. */
+export function fetchFreeLeft(): Promise<FreeLeft | null> {
+  return mine<FreeLeft>('/free')
 }
 
 /** Your slow games as mini tables. Null when they could not be fetched. */

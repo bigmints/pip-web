@@ -24,9 +24,9 @@ export default function TwoDevicesTwoChipCountsPost() {
           promise broken rather than a price introduced.
         </p>
         <p>
-          If you never turn it on, Pip makes no request to us at all. No client loads, no identity
-          exists, and there is no row anywhere with your name on it. That is not a policy we are
-          asking you to believe. It is what the code does, and the code is{' '}
+          If you never turn it on, nothing of yours reaches our servers. No client loads, no
+          identity exists, and there is no row anywhere with your name on it. That is not a policy
+          we are asking you to believe. It is what the code does, and the code is{' '}
           <A href="https://github.com/playpip/pip-web">all there</A>.
         </p>
       </Section>

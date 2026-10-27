@@ -3,11 +3,23 @@
 
 import { createAvatar } from '@dicebear/core'
 import { notionists } from '@dicebear/collection'
+import {
+  AVATAR_PARTS,
+  type AvatarFeatures,
+  type AvatarPart,
+  isOptionalPart,
+  NO_PART,
+} from '@/lib/avatarParts'
 
 export interface AvatarSpec {
   seed: string
   /** Background swatch behind the character. */
   backgroundColor: string
+  /**
+   * Parts a member picked by hand (lib/avatarParts). Absent, or a part left
+   * out, and the seed draws it, so every older avatar is unchanged.
+   */
+  features?: AvatarFeatures
 }
 
 export const AVATAR_BG_SWATCHES = [
@@ -33,14 +45,70 @@ export const AVATAR_BG_SWATCH_NAMES: Record<(typeof AVATAR_BG_SWATCHES)[number],
   f4e7b6: 'sand',
 }
 
-/** Render an AvatarSpec to an SVG string (for dangerouslySetInnerHTML or data URI). */
-export function renderAvatar(spec: AvatarSpec, size = 96): string {
+/**
+ * The DiceBear options for the parts that were picked.
+ *
+ * A picked part is a one-item list, and an optional one is forced on (or off,
+ * for `NO_PART`) with its probability. **The seed's other parts do not move**:
+ * DiceBear draws one random number per part whether the list has one item or
+ * sixty, so fixing the hair leaves the seed's eyes where they were.
+ */
+function featureOptions(features: AvatarFeatures | undefined): Record<string, unknown> {
+  const options: Record<string, unknown> = {}
+  for (const [part, value] of Object.entries(features ?? {})) {
+    if (!value) continue
+    if (value === NO_PART) {
+      options[`${part}Probability`] = 0
+      continue
+    }
+    options[part] = [value]
+    if (isOptionalPart(part as AvatarPart)) options[`${part}Probability`] = 100
+  }
+  return options
+}
+
+function create(spec: AvatarSpec, size: number) {
   return createAvatar(notionists, {
     seed: spec.seed,
     size,
     backgroundColor: [spec.backgroundColor],
     radius: 50,
-  }).toString()
+    ...featureOptions(spec.features),
+  })
+}
+
+/** Render an AvatarSpec to an SVG string (for dangerouslySetInnerHTML or data URI). */
+export function renderAvatar(spec: AvatarSpec, size = 96): string {
+  return create(spec, size).toString()
+}
+
+/**
+ * A square close-up of an avatar, for showing one part big enough to choose.
+ * `x`, `y` and `w` are in the avatar's own 1744-unit frame: the centre of the
+ * crop and its width.
+ */
+export function avatarCloseUpUri(
+  spec: AvatarSpec,
+  size: number,
+  crop: { x: number; y: number; w: number },
+): string {
+  const view = `${crop.x - crop.w / 2} ${crop.y - crop.w / 2} ${crop.w} ${crop.w}`
+  const svg = renderAvatar(spec, size).replace('viewBox="0 0 1744 1744"', `viewBox="${view}"`)
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+/**
+ * Every part as it is drawn right now, picked or from the seed. What the
+ * editor marks as chosen, so a member starts from the face they have.
+ */
+export function resolvedFeatures(spec: AvatarSpec): Record<AvatarPart, string> {
+  const extra = create(spec, 16).toJson().extra as Record<string, unknown>
+  const out = {} as Record<AvatarPart, string>
+  for (const { part } of AVATAR_PARTS) {
+    const value = extra[part]
+    out[part] = typeof value === 'string' ? value : NO_PART
+  }
+  return out
 }
 
 /** Render to a data URI usable as an <img src>. */

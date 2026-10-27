@@ -1,6 +1,7 @@
 // The room server's front door.
 //
-//   POST /rooms               create a private room (a member's, with a token)
+//   POST /rooms               create a private room or slow game (a member's, or a free one)
+//   GET  /free                what is left of your free hosting (a token)
 //   GET  /rooms/:code         what a code opens: the stake and who is waiting
 //   GET  /rooms/:code/ws      the table's socket
 //   GET  /queue/:venueId/ws   quick match at a ladder stake
@@ -12,26 +13,32 @@
 //   POST /notify/devices/remove
 //   GET  /notify/key          the web push (VAPID) public key
 //   GET|POST /notify/off      the "stop these emails" link (signed, no token)
+//   GET  /hands               the hands-played count (the landing page reads it)
+//   POST /hands               the game's hands against the cast, a batch at a time
 //
 // Every socket and every create is refused from an origin that is not the
 // site's (ALLOWED_ORIGINS), so a page somewhere else cannot drive a table with
 // a visitor's session.
 
 import { cryptoInt } from '@/lib/cryptoRng'
+import { hostingAllowance } from '@/lib/multiplayer/freeRoom'
 import { normaliseRoomCode, newRoomCode } from '@/lib/multiplayer/code'
 import { parseClientMessage } from '@/lib/multiplayer/protocol'
 import { type RoomKind, type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
 import { parseDevice, parsePrefs, quietOf } from '@/lib/multiplayer/notices'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
 import { identify, isMember } from './auth'
+import { claimFree, freeLeft, releaseFree } from './free'
 import { blocksOf } from './safety'
 import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
 import { offLinkValid } from './notify'
 import type { InitBody } from './room'
+import { tallyStub } from './tally'
 
 export { PokerRoom } from './room'
 export { Matchmaker } from './matchmaker'
 export { Player } from './player'
+export { Tally } from './tally'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -44,6 +51,26 @@ export default {
     // src/lib/poker or src/lib/multiplayer after it is not on the tables yet.
     if (parts[0] === 'health') {
       return json({ ok: true, uploaded: env.VERSION?.timestamp ?? null }, 200, cors)
+    }
+
+    if (parts[0] === 'hands' && parts.length === 1) {
+      if (request.method === 'GET') {
+        const res = await tallyStub(env).fetch('https://tally/read')
+        return json(await res.json(), 200, { ...cors, 'Cache-Control': 'public, max-age=300' })
+      }
+      if (request.method === 'POST') {
+        if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)
+        const body = (await request.json().catch(() => null)) as { n?: unknown } | null
+        const res = await tallyStub(env).fetch('https://tally/add', {
+          method: 'POST',
+          body: JSON.stringify({
+            bucket: 'ai',
+            n: body?.n,
+            ip: request.headers.get('CF-Connecting-IP') ?? '',
+          }),
+        })
+        return new Response(null, { status: res.ok ? 204 : res.status, headers: cors })
+      }
     }
 
     if (parts[0] === 'rooms' && parts.length === 1 && request.method === 'POST') {
@@ -72,7 +99,12 @@ export default {
     if (parts[0] === 'notify' && parts[1] === 'key' && request.method === 'GET') {
       return json({ key: env.VAPID_PUBLIC_KEY ?? null }, 200, cors)
     }
-    if (parts[0] === 'slow' || parts[0] === 'notify') {
+    if (
+      parts[0] === 'slow' ||
+      parts[0] === 'notify' ||
+      parts[0] === 'free' ||
+      parts[0] === 'free-room'
+    ) {
       if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)
       return mine(request, env, cors, parts)
     }
@@ -90,9 +122,9 @@ export default {
 } satisfies ExportedHandler<Env>
 
 /**
- * A member opens a room. The host is seated as it is created, so the room
- * exists with somebody in it from its first moment and the code they share
- * opens onto their face.
+ * A member, or somebody spending a free one, opens a room or a slow game. The host is
+ * seated as it is created, so the room exists with somebody in it from its
+ * first moment and the code they share opens onto their face.
  */
 async function createRoom(
   request: Request,
@@ -124,7 +156,20 @@ async function createRoom(
 
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
-  if (!(await isMember(userId, token, env))) return json({ error: 'members-only' }, 403, cors)
+  const member = await isMember(userId, token, env)
+  // Without the membership: the free one of this kind. Today's room is
+  // claimed now so two tabs cannot both have it, and handed back below if the
+  // room cannot be opened. A slow game is free while they host no other.
+  let release = async () => {}
+  if (!member) {
+    const allowed = hostingAllowance({ member, kind, left: await freeLeft(env, userId) })
+    if (allowed !== 'free') return json({ error: allowed }, 403, cors)
+    if (kind === 'private') {
+      const claimed = await claimFree(env, userId, 'room')
+      if (!claimed) return json({ error: 'free-room-used' }, 403, cors)
+      release = () => releaseFree(env, userId, claimed)
+    }
+  }
   if (kind === 'slow') {
     const res = await player(env, userId, 'open')
     const { open } = (await res.json()) as { open: number }
@@ -148,8 +193,12 @@ async function createRoom(
       body: JSON.stringify(init),
     })
     if (res.status === 201) return json({ code }, 201, cors)
-    if (res.status === 400) return json({ error: 'bad-settings' }, 400, cors)
+    if (res.status === 400) {
+      await release()
+      return json({ error: 'bad-settings' }, 400, cors)
+    }
   }
+  await release()
   return json({ error: 'busy' }, 503, cors)
 }
 
@@ -185,6 +234,11 @@ async function mine(
     })
 
   switch (route) {
+    case 'GET /free':
+      return json(await freeLeft(env, userId), 200, cors)
+    // The page before 2026-10-25 asks this; a cached copy can still be open.
+    case 'GET /free-room':
+      return json({ spent: !(await freeLeft(env, userId)).room }, 200, cors)
     case 'GET /slow':
       return relay(await player(env, userId, 'games'))
     case 'POST /slow/dismiss': {

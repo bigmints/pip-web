@@ -1,5 +1,12 @@
 import test from 'ava'
-import { AVATAR_BG_SWATCH_NAMES, AVATAR_BG_SWATCHES, accentFromSwatch } from '@/lib/avatar'
+import {
+  AVATAR_BG_SWATCH_NAMES,
+  AVATAR_BG_SWATCHES,
+  accentFromSwatch,
+  renderAvatar,
+  resolvedFeatures,
+} from '@/lib/avatar'
+import { AVATAR_PARTS, NO_PART, parseFeatures } from '@/lib/avatarParts'
 
 // accentFromSwatch parses a `#rrggbb`/`rrggbb` swatch, converts to HSL, then
 // re-emits an accent at a fixed lightness (L = 0.55) with saturation clamped to
@@ -106,4 +113,42 @@ test('every swatch has a distinct, non-empty name for the picker to announce', (
   }
   const names = AVATAR_BG_SWATCHES.map((s) => AVATAR_BG_SWATCH_NAMES[s])
   t.is(new Set(names).size, AVATAR_BG_SWATCHES.length)
+})
+
+// --- picked features (pip-web#259) ---------------------------------------------
+
+const spec = { seed: 'pip-features', backgroundColor: 'b6e3f4' }
+
+test('an avatar with no features draws exactly as it did before they existed', (t) => {
+  t.is(renderAvatar(spec), renderAvatar({ ...spec, features: {} }))
+})
+
+test('every offered value is one DiceBear draws, and picking it draws it', (t) => {
+  for (const { part, values } of AVATAR_PARTS) {
+    for (const value of values) {
+      t.is(resolvedFeatures({ ...spec, features: { [part]: value } })[part], value, part)
+    }
+  }
+})
+
+test('picking one part leaves the seed’s other parts where they were', (t) => {
+  const before = resolvedFeatures(spec)
+  const hair = AVATAR_PARTS[0].values.find((v) => v !== before.hair) ?? 'hat'
+  const after = resolvedFeatures({ ...spec, features: { hair } })
+  t.is(after.hair, hair)
+  t.deepEqual({ ...after, hair: before.hair }, before)
+})
+
+test('an optional part can be taken off, and put on when the seed left it off', (t) => {
+  t.is(resolvedFeatures({ ...spec, features: { glasses: NO_PART } }).glasses, NO_PART)
+  t.is(resolvedFeatures({ ...spec, features: { beard: 'variant03' } }).beard, 'variant03')
+})
+
+test('parseFeatures keeps known parts and drops the rest', (t) => {
+  t.deepEqual(
+    parseFeatures({ hair: 'variant02', eyes: 'variant99', nose: NO_PART, glasses: NO_PART, x: 1 }),
+    { hair: 'variant02', glasses: NO_PART },
+  )
+  t.is(parseFeatures({ eyes: 'nope' }), undefined)
+  t.is(parseFeatures('hair'), undefined)
 })

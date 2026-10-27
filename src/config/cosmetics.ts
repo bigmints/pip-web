@@ -43,6 +43,12 @@ export interface Cosmetic extends MembersOnly {
   blurb: string
   /** Chips. Zero means the price is not the gate — `membersOnly` is, or nothing is. */
   price: number
+  /**
+   * Earned, never bought: the daily reward hands it over on this day of a
+   * streak (lib/dailyReward). Always priced at zero and held in `owned` once
+   * earned, so it stays yours if the streak ends.
+   */
+  streakDay?: number
 }
 
 /**
@@ -60,7 +66,7 @@ export function cosmeticUnlocked(
   owned: ReadonlySet<string>,
   member: boolean,
 ): boolean {
-  if (item.price > 0) return owned.has(item.id)
+  if (item.streakDay !== undefined || item.price > 0) return owned.has(item.id)
   return item.membersOnly ? member : true
 }
 
@@ -118,6 +124,14 @@ export const AVATAR_RINGS: readonly AvatarRing[] = [
     blurb: 'The fittings on a good table.',
     price: 1_500,
     ring: '#B08D57',
+  },
+  {
+    id: 'ring-ember',
+    name: 'Ember',
+    blurb: 'Seven days running and still warm.',
+    price: 0,
+    streakDay: 7,
+    ring: 'conic-gradient(from 200deg, #FFB347, #E8552F, #B3261E, #E8552F, #FFB347)',
   },
   {
     id: 'ring-enamel',
@@ -217,6 +231,15 @@ export const DEALER_BUTTONS: readonly DealerButton[] = [
     ink: '#F0E4D4',
   },
   {
+    id: 'button-hearth',
+    name: 'Hearth',
+    blurb: 'Thirty days of coming back to the table.',
+    price: 0,
+    streakDay: 30,
+    face: 'radial-gradient(circle at 35% 30%, #FFC56E, #E8692F 55%, #9E2F18)',
+    ink: '#2B0F06',
+  },
+  {
     id: 'button-engraved',
     name: 'Engraved',
     blurb: 'Brass, with initials that are not yours. Comes with the membership.',
@@ -291,6 +314,18 @@ export const SOUND_PACKS: readonly SoundPack[] = [
     gain: 0.9,
     length: 1.15,
     timbre: 'sine',
+  },
+  {
+    // The streak's day-150 item: earned, never sold (lib/dailyReward).
+    id: 'sound-crackle',
+    name: 'Crackle',
+    blurb: 'A hundred and fifty days by the fire.',
+    price: 0,
+    streakDay: 150,
+    pitch: 0.88,
+    gain: 0.85,
+    length: 0.8,
+    timbre: 'sawtooth',
   },
   {
     id: 'sound-brass',

@@ -25,6 +25,7 @@ import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { normaliseRoomCode } from '@/lib/multiplayer/code'
 import { devSignedIn, peekRoom, roomsConfigured, type RoomPeek } from '@/lib/multiplayer/client'
 import type { ServerError } from '@/lib/multiplayer/protocol'
+import { hosted } from '@/lib/multiplayer/room'
 import { appSupports, inApp } from '@/lib/nativeApp'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
@@ -39,7 +40,7 @@ import { RoomTable } from './RoomTable'
 
 const ERROR_COPY: Partial<Record<ServerError, string>> = {
   auth: 'Sign in again to sit down.',
-  'members-only': 'Opening a room comes with the membership.',
+  'members-only': 'This comes with the membership.',
   'no-room': 'There’s no room with that code. It may have finished, or the code is mistyped.',
   full: 'That table is full.',
   started: 'That game has already started. Only the players who sat down before the deal can join.',
@@ -63,7 +64,13 @@ export function RoomScreen() {
   const sitting = code !== null && roomCode === code
   const slow = view?.kind === 'slow'
 
+  // Set the moment Back is pressed. Clearing the room drops this screen to
+  // the join gate for a frame before the route changes, and the gate puts you
+  // straight back in a slow game you hold a seat at.
+  const [leaving, setLeaving] = useState(false)
+
   const goBack = () => {
+    setLeaving(true)
     useMedia.getState().stop()
     // A slow game's seat stays yours with the screen closed: back is only back.
     if (slow) {
@@ -77,11 +84,13 @@ export function RoomScreen() {
   }
   /** A slow game, given up on purpose: the seat is freed, or folded out once dealt. */
   const leaveGame = () => {
+    setLeaving(true)
     leave()
     void useSlowGames.getState().refresh()
     router.push('/game')
   }
 
+  if (leaving) return <Waiting label="Leaving the table" />
   if (!roomsConfigured()) return <Unavailable />
   if (!code) return <NoRoom message="That link doesn’t have a room code in it." />
   if (!sitting) return <JoinGate code={code} />
@@ -91,7 +100,8 @@ export function RoomScreen() {
   }
   if (!view) return <Waiting label="Pulling up a chair" />
 
-  const live = view.kind === 'private' && mediaSupported() && (!inApp() || appSupports('media'))
+  // Camera and mic at the tables friends share by code: a private room or a slow game.
+  const live = hosted(view) && mediaSupported() && (!inApp() || appSupports('media'))
 
   return (
     <>

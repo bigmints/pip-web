@@ -17,6 +17,8 @@
 
 export const SITE_URL = 'https://playpip.io'
 export const PLAY_URL = `${SITE_URL}/play/daily`
+/** The lobby, where the daily reward card is. */
+export const LOBBY_URL = `${SITE_URL}/game`
 /** The domain verified in Resend is the `mail.` subdomain; replies go to the inbox on the root. */
 export const FROM = 'Pip <hello@mail.playpip.io>'
 export const REPLY_TO = 'hello@playpip.io'
@@ -80,6 +82,10 @@ export interface Facts {
   lastPlayed: string | null
   streak: Streak | null
   counters: Counters | null
+  /** The buy-in at the player's table (lowest ladder rung not won): what the daily reward is counted in. */
+  tableBuyIn?: number | null
+  /** A live membership (`memberships.status`), read by the function, not the profile. */
+  member?: boolean
 }
 
 type Obj = Record<string, unknown>
@@ -111,6 +117,7 @@ export function readFacts(state: unknown): Facts {
     roll: count(state.roll),
     lastPlayed,
     streak: readStreak(state),
+    tableBuyIn: tableBuyIn(state.venueRecords),
     counters:
       hands !== null && tournaments !== null && wins !== null ? { hands, tournaments, wins } : null,
   }
@@ -125,6 +132,87 @@ export function liveStreak(facts: Facts, today: string): number | null {
   if (!facts.streak || facts.streak.current < 1 || !facts.lastPlayed) return null
   if (facts.lastPlayed !== today && facts.lastPlayed !== addDays(today, -1)) return null
   return facts.streak.current
+}
+
+/**
+ * Missed yesterday after a run of at least two days: the streak ended at the
+ * last midnight. True on that one day only, so the email it sends is sent once.
+ */
+export function streakLapsed(facts: Facts, today: string): boolean {
+  return facts.lastPlayed === addDays(today, -2) && (facts.streak?.current ?? 0) >= 2
+}
+
+// --- the daily reward ----------------------------------------------------
+//
+// A copy of src/lib/dailyReward's sums, because this file may not import the
+// app. tests/email.test.ts holds the two to the same answer for every day and
+// rank, so they cannot drift.
+
+const REWARD_LADDER = [1, 1.25, 1.5, 1.75, 2, 2.5, 3]
+
+/** The ladder's rungs in order, with their buy-ins (config/venues `VENUES`). */
+export const LADDER_RUNGS: readonly { id: string; buyIn: number }[] = [
+  { id: 'garage', buyIn: 100 },
+  { id: 'pub', buyIn: 300 },
+  { id: 'poolhall', buyIn: 750 },
+  { id: 'cardroom', buyIn: 2_000 },
+  { id: 'casino', buyIn: 5_000 },
+  { id: 'riverboat', buyIn: 15_000 },
+  { id: 'penthouse', buyIn: 40_000 },
+  { id: 'montecarlo', buyIn: 100_000 },
+  { id: 'vegas', buyIn: 300_000 },
+  { id: 'mainevent', buyIn: 1_000_000 },
+]
+
+/** The buy-in at the lowest rung not yet won (the top one once all are). `yourTable` in the app. */
+export function tableBuyIn(venueRecords: unknown): number {
+  const records = isObj(venueRecords) ? venueRecords : {}
+  const won = (id: string) => {
+    const r = records[id]
+    return isObj(r) && typeof r.won === 'number' && r.won > 0
+  }
+  return (LADDER_RUNGS.find((r) => !won(r.id)) ?? LADDER_RUNGS[LADDER_RUNGS.length - 1]).buyIn
+}
+
+/** The streak items, by the day they are earned (config/shop `streakDay`). */
+export const STREAK_ITEMS: readonly { day: number; name: string }[] = [
+  { day: 7, name: 'the Ember ring' },
+  { day: 14, name: 'the Kindling card back' },
+  { day: 21, name: 'the Regulars’ Table, where Maud plays' },
+  { day: 30, name: 'the Hearth dealer button' },
+  { day: 60, name: 'the Embers table finish' },
+  { day: 100, name: 'The Hundred' },
+  { day: 150, name: 'the Crackle sound pack' },
+  { day: 200, name: 'the Phoenix card back' },
+  { day: 365, name: 'The Year' },
+]
+
+/** The chips the daily reward pays on this streak day. Same sum as `rewardFor`. */
+export function rewardChips(streakDay: number, buyIn: number, member: boolean): number {
+  // Past the first week the top rate holds.
+  const rate = Math.min(Math.max(1, streakDay), REWARD_LADDER.length)
+  const n = buyIn * REWARD_LADDER[rate - 1]
+  const step = n < 100 ? 5 : n < 1_000 ? 25 : n < 10_000 ? 250 : n < 100_000 ? 2_500 : 5_000
+  const chips = Math.max(step, Math.round(n / step) * step)
+  return member ? chips * 2 : chips
+}
+
+/** What the reward lines say about a given streak day. */
+function rewardLines(facts: Facts, streakDay: number): string[] {
+  const peak = facts.tableBuyIn ?? LADDER_RUNGS[0].buyIn
+  const member = facts.member === true
+  const lines = [`Today's reward is ${chips(rewardChips(streakDay, peak, member))}.`]
+  if (!member) lines.push(`Members get ${chips(rewardChips(streakDay, peak, true))}.`)
+  const due = STREAK_ITEMS.find((item) => item.day === streakDay)
+  const next = STREAK_ITEMS.find((item) => item.day > streakDay)
+  if (due) lines.push(`Claim it and ${due.name} is yours too.`)
+  else if (next) {
+    const left = next.day - streakDay
+    lines.push(
+      `${next.name[0].toUpperCase()}${next.name.slice(1)} comes on day ${next.day}, ${plural(left, 'day', 'days')} from now.`,
+    )
+  }
+  return lines
 }
 
 // --- who is due what -----------------------------------------------------
@@ -181,7 +269,11 @@ export function dueKind(row: PrefsRow, facts: Facts | null, now: Date): Kind | n
   }
   if (!facts) return null
 
-  if (row.daily_reminder && now.getUTCHours() >= REMINDER_HOUR_UTC && streakAtRisk(facts, today)) {
+  if (
+    row.daily_reminder &&
+    now.getUTCHours() >= REMINDER_HOUR_UTC &&
+    (streakAtRisk(facts, today) || streakLapsed(facts, today))
+  ) {
     return 'reminder'
   }
   if (
@@ -303,17 +395,35 @@ interface Body {
 function reminderBody(ctx: RenderContext): Body {
   const today = dayKey(ctx.now)
   const no = dailyNumber(today)
+  const why = 'You turned on streak reminders in Pip.'
+  const button = { label: "Claim today's reward", url: LOBBY_URL }
+
+  // The day after a streak ended: day 1 is waiting.
+  if (ctx.facts && streakLapsed(ctx.facts, today)) {
+    const ended = ctx.facts.streak?.current ?? 0
+    return {
+      subject: 'Start a new streak today',
+      heading: 'Start a new streak',
+      lines: [
+        `Your ${ended}-day streak ended at midnight. Anything you earned on the way is still yours.`,
+        ...rewardLines(ctx.facts, 1),
+      ],
+      button,
+      why,
+    }
+  }
+
   const streak = (ctx.facts ? liveStreak(ctx.facts, today) : null) ?? 1
-  const lines = [
-    `Your streak is ${plural(streak, 'day', 'days')}. Play one hand before midnight UTC to keep it.`,
-    `Any table counts. Today's Daily, #${no}, is free.`,
-  ]
   return {
-    subject: `Your ${streak}-day streak ends at midnight UTC`,
+    subject: `Your day ${streak + 1} reward is waiting`,
     heading: `Keep your ${streak}-day streak`,
-    lines,
-    button: { label: `Play Daily #${no}`, url: PLAY_URL },
-    why: 'You turned on streak reminders in Pip.',
+    lines: [
+      `Your streak is ${plural(streak, 'day', 'days')}. Claim today's reward or play one hand before midnight UTC to keep it.`,
+      ...(ctx.facts ? rewardLines(ctx.facts, streak + 1) : []),
+      `Today's Daily, #${no}, is free.`,
+    ],
+    button,
+    why,
   }
 }
 

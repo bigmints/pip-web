@@ -29,7 +29,8 @@ Each `Character` in `src/config/cast.ts`:
   buy-ins (`bandFor`), so new venues get a roster automatically.
 - **`only`** — pins a character to specific venues instead: Uncle Ray hosts the
   Kitchen Table; Sable is the Vault's boss; Bev, Dez and Winnie keep the member
-  rooms. Pinned characters never wander.
+  rooms; Maud keeps the Regulars' Table, which a 21-day streak opens (docs/daily-reward.md).
+  Pinned characters never wander.
 - **`delta`**: nudges (±0.2 max) over the venue's `AiProfile`
   (tightness / aggression / bluff). **The venue owns difficulty** — `skill` and
   `iterations` are never touched, so the ladder curve is exactly as tuned.

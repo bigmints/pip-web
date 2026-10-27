@@ -16,12 +16,15 @@
       { "name": "ROOMS", "class_name": "PokerRoom" },
       { "name": "QUEUES", "class_name": "Matchmaker" },
       // One per account: their slow games, notification prefs and push devices.
-      { "name": "PLAYERS", "class_name": "Player" }
+      { "name": "PLAYERS", "class_name": "Player" },
+      // The hands-played count on the landing page. One object.
+      { "name": "TALLY", "class_name": "Tally" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["PokerRoom", "Matchmaker"] },
-    { "tag": "v2", "new_sqlite_classes": ["Player"] }
+    { "tag": "v2", "new_sqlite_classes": ["Player"] },
+    { "tag": "v3", "new_sqlite_classes": ["Tally"] }
   ],
   "vars": {
     // Where the site is served from. Every socket and request is checked

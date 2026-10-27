@@ -37,7 +37,6 @@ import { PlayButton } from './PlayButton'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
-import { ACCOUNT_OFFER } from '@/config/account'
 import { providerNames, syncConfigured } from '@/lib/sync/client'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
@@ -193,10 +192,8 @@ function Hero() {
             </a>
           </div>
 
-          <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
-            Play money only. {ACCOUNT_OFFER}
-          </p>
           <SignInLink />
+          <HandsPlayed />
         </div>
 
         {/* the table showpiece — a real hand, not a mock */}
@@ -690,7 +687,7 @@ function Multiplayer() {
           <SectionHeading
             eyebrow="Multiplayer"
             title="Deal your friends in."
-            body="Open a room, send the code, and play at the same table. Turn your camera on and your face takes your seat; turn your mic on and talk while you play. Opening a room comes with the membership, and your friends join free."
+            body="Open a room, send the code, and play at the same table. Turn your camera on and your face takes your seat; turn your mic on and talk while you play. With a free account you get one room and one quick match a day, and one slow game at a time; the membership opens as many as you like. Your friends join free."
           />
           <Reveal className="mt-9 flex flex-wrap items-center gap-3" delay={0.1}>
             <Link
@@ -888,7 +885,7 @@ function Membership() {
         <SectionHeading
           eyebrow="Free, and the membership"
           title="The game is free. The membership adds to it."
-          body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, and reports on your play.`}
+          body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, reports on your play${features.some((f) => f.id === 'avatar') ? ', and a face you build feature by feature' : ''}.`}
         />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2">
@@ -1006,7 +1003,7 @@ function SignInLink() {
   // A build with no accounts behind it has nothing to sign in to.
   if (!syncConfigured() || (hydrated && created)) return null
   return (
-    <p style={riseDelay(4)} className="rise-in mt-2 text-sm text-muted-foreground">
+    <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
       Already have an account?{' '}
       <Link
         href="/game?account=signin"
@@ -1016,6 +1013,27 @@ function SignInLink() {
         Sign in
       </Link>
     </p>
+  )
+}
+
+/**
+ * How many hands have been played on Pip, all of it: against the AI and against people.
+ * Empty and hidden in the static page: the landing page's function
+ * (functions/index.ts) fills it in on the way out, from the room server's count,
+ * so a visitor's browser never asks for it. If the count cannot be had, the
+ * line stays hidden. `dangerouslySetInnerHTML` is what keeps React's hydration
+ * off the filled-in text.
+ */
+function HandsPlayed() {
+  return (
+    <p
+      data-hands
+      hidden
+      suppressHydrationWarning
+      className="mt-6 text-sm text-muted-foreground tabular-nums"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: empty; filled server-side
+      dangerouslySetInnerHTML={{ __html: '' }}
+    />
   )
 }
 

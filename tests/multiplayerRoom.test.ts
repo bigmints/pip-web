@@ -10,6 +10,7 @@ import {
   configure,
   createRoom,
   disconnect,
+  held,
   join,
   kick,
   leave,
@@ -19,6 +20,8 @@ import {
   tick,
   timeoutAction,
   AWAY_TURN_MS,
+  EMPTY_HOLD_MS,
+  NEXT_HAND_MS,
   TURN_MS,
   type Joiner,
   type Result,
@@ -536,4 +539,64 @@ test('somebody the host has blocked before cannot join their room', (t) => {
   const r = join(s, person(1), 0)
   t.is(!r.ok && r.error, 'kicked')
   t.true(join(s, person(2), 0).ok)
+})
+
+/** A quick table one person was matched to, dealt and run on to the pause after its first hand. */
+function quickBetweenHands(rng: () => number): RoomState {
+  let s = createRoom({ code: 'QQQQQQ', kind: 'quick', venue: pub, reserved: ['user-1'], now: 0 })
+  s = must(join(s, person(1), 0))
+  s = tick(s, s.dueAt!, rng)
+  for (let i = 0; i < 500 && s.dueKind !== 'next-hand'; i++) s = tick(s, s.dueAt!, rng)
+  return s
+}
+
+test('a live table nobody has open stops dealing, then closes', (t) => {
+  const rng = mulberry32(21)
+  let s = quickBetweenHands(rng)
+  t.is(s.dueKind, 'next-hand')
+  const hands = s.handIndex
+  const at = s.dueAt!
+  s = tick(s, at, rng, new Set())
+  t.true(held(s))
+  t.is(s.dueAt, at + EMPTY_HOLD_MS)
+  t.is(s.handIndex, hands)
+  t.is(s.dueKind, 'expire')
+  // Marked gone, whatever the socket last said.
+  t.false(s.players.find((p) => p.userId === 'user-1')!.connected)
+  s = tick(s, s.dueAt!, rng, new Set())
+  t.is(s.phase, 'closed')
+})
+
+test('somebody with the table open keeps it dealing', (t) => {
+  const rng = mulberry32(22)
+  let s = quickBetweenHands(rng)
+  const hands = s.handIndex
+  s = tick(s, s.dueAt!, rng, new Set(['user-1']))
+  t.false(held(s))
+  t.is(s.handIndex, hands + 1)
+})
+
+test('coming back to a held table deals again', (t) => {
+  const rng = mulberry32(23)
+  let s = quickBetweenHands(rng)
+  const at = s.dueAt!
+  s = tick(s, at, rng, new Set())
+  t.true(held(s))
+  s = must(join(s, person(1), at + 60_000))
+  t.false(held(s))
+  t.is(s.dueKind, 'next-hand')
+  t.is(s.dueAt, at + 60_000 + NEXT_HAND_MS)
+  t.true(s.players.find((p) => p.userId === 'user-1')!.connected)
+})
+
+test('a slow game is never held: it is played with the table shut', (t) => {
+  const rng = mulberry32(24)
+  let s = createRoom({ code: 'SSSSSS', kind: 'slow', venue: pub, host: person(0), now: 0 })
+  s = must(join(s, person(1), 0, rng))
+  if (s.phase === 'lobby') s = must(start(s, 'user-0', 0, rng))
+  for (let i = 0; i < 500 && s.dueKind !== 'next-hand'; i++) s = tick(s, s.dueAt!, rng, new Set())
+  t.is(s.dueKind, 'next-hand')
+  const hands = s.handIndex
+  s = tick(s, s.dueAt!, rng, new Set())
+  t.is(s.handIndex, hands + 1)
 })

@@ -136,3 +136,12 @@ test('reports carry one of the reasons, and blocks a seat', (t) => {
   t.is(send({ t: 'report', id: 'p2' }), null)
   t.deepEqual(send({ t: 'block', id: 'p2' }), { t: 'block', id: 'p2' })
 })
+
+test('a hello keeps an avatar’s picked parts and drops unknown ones', (t) => {
+  const picked = { ...avatar, features: { hair: 'variant07', eyes: 'variant99', beard: 'none' } }
+  const m = send({ t: 'hello', token: 'tok', name: 'x', avatar: picked, ring: null })
+  t.deepEqual(m && 'avatar' in m ? m.avatar : null, {
+    ...avatar,
+    features: { hair: 'variant07', beard: 'none' },
+  })
+})
