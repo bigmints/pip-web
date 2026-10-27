@@ -10,14 +10,7 @@ import { mulberry32 } from '@/lib/poker/cards'
 import { BIG_POT } from './venues'
 
 /** The seat names in the order the post walks round the table, button first. */
-const SEAT_NAMES = [
-  'Button',
-  'Small blind',
-  'Big blind',
-  'Under the gun',
-  'Hijack',
-  'Cutoff',
-]
+const SEAT_NAMES = ['Button', 'Small blind', 'Big blind', 'Under the gun', 'Hijack', 'Cutoff']
 
 function bigPotHand(): HandState {
   return startHand({
