@@ -107,3 +107,11 @@ export const SITE_CARD: SocialImage = {
   height: 630,
   alt: 'Pip — poker without the casino',
 }
+
+/**
+ * The iOS app's listing. The id is Apple's, read from the store's own lookup
+ * by bundle id (`io.playpip.app`); the root layout hands it to Safari for the
+ * Smart App Banner, and the badge links here.
+ */
+export const APP_STORE_ID = '6819732662'
+export const APP_STORE_URL = `https://apps.apple.com/app/pip-poker/id${APP_STORE_ID}`
