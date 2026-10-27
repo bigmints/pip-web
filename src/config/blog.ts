@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'pot-limit-omaha-max-bet',
+    title: 'The most you can bet in Pot-Limit Omaha',
+    description:
+      'You may raise by the size of the pot after you call. At 25 and 50 blinds the first raise is 175, then 600, 2,050 and 7,000, and the fifth is all-in from 200 big blinds. The shortcut players use, why it is out by a blind for the blinds, and the flop.',
+    date: '2026-10-27',
+  },
+  {
     slug: 'turn-based-poker-with-friends',
     title: 'Turn-based poker with friends who are never free at once',
     description:
