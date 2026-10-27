@@ -34,6 +34,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Wordmark } from './Wordmark'
 import { HeroTable, riseDelay } from './HeroTable'
 import { PlayButton } from './PlayButton'
+import { AppStoreBadge } from './AppStoreBadge'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
@@ -193,6 +194,7 @@ function Hero() {
           </div>
 
           <SignInLink />
+          <AppStoreBadge className="mt-6" />
           <HandsPlayed />
         </div>
 
