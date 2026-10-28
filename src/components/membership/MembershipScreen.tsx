@@ -18,10 +18,10 @@
 // **No `<table>`**: the mirror's Turndown pass has shipped a broken one before.
 // The free-versus-member comparison is two lists side by side.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MotionConfig, motion } from 'framer-motion'
+import { MotionConfig, motion, useInView } from 'framer-motion'
 import {
   Check,
   ChevronDown,
@@ -903,6 +903,13 @@ function Plans({
   // In the store app it is paid and cancelled through the store, so the notes
   // about Stripe's checkout and cancelling from Settings don't apply.
   const app = useInApp()
+  // Between the page view and checkout the funnel was blind: a tab that never
+  // scrolled this far and one that read the till and left counted the same.
+  const till = useRef<HTMLDivElement>(null)
+  const tillSeen = useInView(till, { once: true, amount: 0.5 })
+  useEffect(() => {
+    if (tillSeen) trackOnce('membership-join-seen')
+  }, [tillSeen])
 
   const pick = (next: Plan) => {
     if (next === plan) return
@@ -972,7 +979,10 @@ function Plans({
           })}
         </div>
 
-        <div className="mt-5 rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-6">
+        <div
+          ref={till}
+          className="mt-5 rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-6"
+        >
           {ready ? (
             <Join plan={plan} planName={PLANS[plan].name} currency={currency} />
           ) : (
@@ -1104,6 +1114,9 @@ function Join({
   }
 
   const pay = () => {
+    // Counted before the box is checked, so pressed-join minus checkout-opened
+    // is the tabs the box (or the till) stopped.
+    trackOnce('membership-join-tapped')
     // The button stays live without the box so a tap says why, rather than
     // a greyed button doing nothing.
     if (!startNow) {
