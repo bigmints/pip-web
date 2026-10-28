@@ -149,7 +149,7 @@ export default function BeginnerBeatTheMainEventPost() {
           The ladder, the Rail, the Daily and the freeroll stay free. The shove-or-fold drill the
           bots learned from is in the{' '}
           <Link
-            href={`${membershipFor('drills')}&drill=shove-or-fold&from=blog`}
+            href={`${membershipFor('drills')}&drill=shove-or-fold&from=blog&post=a-beginner-beat-the-main-event`}
             className={linkClass}
           >
             membership

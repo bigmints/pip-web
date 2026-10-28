@@ -114,7 +114,10 @@ export default function OmahaExactlyTwoPost() {
       <Section title="Where it is">
         <p>
           Pot-Limit Omaha is The Big Pot, one of the side tables in the{' '}
-          <Link href={`${membershipFor('omaha')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('omaha')}&from=blog&post=omaha-exactly-two`}
+            className={linkClass}
+          >
             membership
           </Link>
           . The ladder, the Rail, the Daily and the freeroll stay free. The rule was always free to

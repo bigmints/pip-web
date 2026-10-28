@@ -144,7 +144,7 @@ export default function BothYourCardsPost() {
           <em>Which five play?</em> is a drill: seven cards, tap the five that count. It is graded
           by ranking all twenty-one fives, so when two tie, either one is right. It is in the{' '}
           <Link
-            href={`${membershipFor('drills')}&drill=which-five-play&from=blog`}
+            href={`${membershipFor('drills')}&drill=which-five-play&from=blog&post=how-often-both-your-cards-play`}
             className={linkClass}
           >
             membership
