@@ -114,7 +114,10 @@ export default function ShortDeckFlushPost() {
       <Section title="Where it is">
         <p>
           Short Deck is one of the side tables in the{' '}
-          <Link href={`${membershipFor('shortdeck')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('shortdeck')}&from=blog&post=short-deck-flush-beats-full-house`}
+            className={linkClass}
+          >
             membership
           </Link>
           , at three stakes. The ladder, the Rail, the Daily and the freeroll stay free. So did the

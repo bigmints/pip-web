@@ -62,7 +62,8 @@ export function SyncSection() {
         ) : (
           <>
             Your profile lives in {where}. An account keeps a copy of it and puts it on your other
-            devices. Neither is needed to play, and nothing leaves this device until you pick one.
+            devices. Neither is needed to play, and your profile stays on this device until you pick
+            one.
           </>
         )}
       </p>

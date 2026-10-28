@@ -153,7 +153,7 @@ export async function fetchSlowGames(): Promise<SlowCard[] | null> {
   return body?.games ?? null
 }
 
-/** Swipe a finished slow game away. */
+/** Take a slow game off your list: a finished one, or leave one still waiting for players. */
 export async function dismissSlowGame(code: string): Promise<void> {
   await mine('/slow/dismiss', { code })
 }

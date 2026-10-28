@@ -1,6 +1,6 @@
 {
   "name": "clean-poker",
-  "version": "1.33.1",
+  "version": "1.33.3",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
@@ -34,6 +34,7 @@
     "play-it-out-cost": "tsx scripts/play-it-out-cost.ts",
     "shove-chart": "tsx scripts/shove-chart.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
+    "blackjack-edge": "tsx scripts/blackjack-edge.ts",
     "lead-band": "tsx scripts/lead-band.ts",
     "exploit-sim": "tsx scripts/exploit-sim.ts",
     "ai-stats": "tsx scripts/ai-stats.ts",

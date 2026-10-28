@@ -118,7 +118,10 @@ export default function PotLimitMaxBetPost() {
       <Section title="Where it is">
         <p>
           The Big Pot and The Split are side tables in the{' '}
-          <Link href={`${membershipFor('omaha')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('omaha')}&from=blog&post=pot-limit-omaha-max-bet`}
+            className={linkClass}
+          >
             membership
           </Link>
           . The ladder, the Rail, the Daily and the freeroll stay free, and so does the arithmetic.

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AppStoreBadge } from './AppStoreBadge'
 import { Wordmark } from './Wordmark'
 
 /**
@@ -74,7 +75,7 @@ export function Footer() {
             Casual Texas Hold’em, redesigned. Free, open source, and play money — never real
             gambling.
           </p>
-          <div className="mt-5"></div>
+          <AppStoreBadge className="mt-5" />
         </div>
         <div className="grid grid-cols-2 gap-x-12 gap-y-8 sm:grid-cols-3">
           {FOOTER_GROUPS.map((group) => (

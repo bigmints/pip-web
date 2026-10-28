@@ -1327,6 +1327,15 @@ export function familyTableNames(family: TableFamily): readonly string[] {
   return [...new Set(family.rooms.map((room) => room.name))]
 }
 
+/**
+ * The ladder table a Deep Stack price is taken from: the same buy-in, blinds
+ * and players, with a third of the chips. `/membership?for=rooms` names it, so
+ * a buyer can place each price against a table they already know.
+ */
+export function deepStackTwin(table: Venue): Venue | undefined {
+  return VENUES.find((rung) => rung.buyIn === table.buyIn)
+}
+
 /** The families in one half of the shelf, in order. */
 export function familiesIn(section: ShelfSection): readonly TableFamily[] {
   return SIDE_SHELF.filter((f) => f.section === section)

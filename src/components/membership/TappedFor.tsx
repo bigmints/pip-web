@@ -33,6 +33,9 @@
 // whose blurb names all four, so it names its family too (`&table=`,
 // `tappedFamily`): the family's own note from the shelf, and its tables.
 //
+// A tap on a Deep Stack table lists its five prices (`TappedDeepStack`), each
+// against the ladder table it is taken from.
+//
 // A tap on Five-Card Draw deals one hand through the draw (`TappedDraw`),
 // loaded the same way as the Omaha showdown, and a tap on The Split one Hi-Lo
 // showdown where the pot is cut in half (`TappedHiLo`).
@@ -49,6 +52,9 @@
 // A tap on hosting lists the rules a host sets (`TappedMultiplayer`), from the
 // lists the room itself is opened with, and a tap on the table builder lists
 // what a built table lets you pick (`TappedCustomTable`), from the builder's.
+//
+// A tap on Blackjack lists its three houses and their edges (`TappedBlackjack`),
+// from the rules the table is dealt by.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -79,6 +85,10 @@ const TappedHiLo = dynamic(() => import('./TappedHiLo').then((m) => m.TappedHiLo
   ssr: false,
 })
 
+const TappedDeepStack = dynamic(() => import('./TappedDeepStack').then((m) => m.TappedDeepStack), {
+  ssr: false,
+})
+
 const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.TappedDrillSpot), {
   ssr: false,
 })
@@ -100,6 +110,10 @@ const TappedCustomTable = dynamic(
   () => import('./TappedCustomTable').then((m) => m.TappedCustomTable),
   { ssr: false },
 )
+
+const TappedBlackjack = dynamic(() => import('./TappedBlackjack').then((m) => m.TappedBlackjack), {
+  ssr: false,
+})
 
 const TappedCoaching = dynamic(() => import('./TappedCoaching').then((m) => m.TappedCoaching), {
   ssr: false,
@@ -149,11 +163,13 @@ export function TappedFor({ price }: { price: ShownPrice }) {
             {new Intl.ListFormat('en-GB').format(familyTableNames(family))}.
           </p>
         )}
+        {feature.id === 'rooms' && <TappedDeepStack />}
         {lesson && <TappedLesson search={search} />}
         {shopItem && <TappedShopItem search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
         {feature.id === 'multiplayer' && <TappedMultiplayer />}
         {feature.id === 'custom-tables' && <TappedCustomTable />}
+        {feature.id === 'blackjack' && <TappedBlackjack />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

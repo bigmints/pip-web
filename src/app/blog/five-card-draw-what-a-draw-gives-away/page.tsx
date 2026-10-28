@@ -102,7 +102,10 @@ export default function FiveCardDrawPost() {
       <Section title="Where it is">
         <p>
           The Parlour is one of the side tables in the{' '}
-          <Link href={`${membershipFor('draw')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('draw')}&from=blog&post=five-card-draw-what-a-draw-gives-away`}
+            className={linkClass}
+          >
             membership
           </Link>
           , at two stakes. The page that link opens deals one hand through the draw first, each side

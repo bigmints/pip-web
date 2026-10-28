@@ -6,6 +6,7 @@ import { TEXT_SCALE_BOOT_SCRIPT, TextScaleProvider } from '@/components/text-sca
 import { AppBoot } from '@/components/AppBoot'
 import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
+import { APP_STORE_ID } from '@/config/site'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,6 +31,10 @@ export const metadata: Metadata = {
   alternates: { types: { 'application/rss+xml': 'https://playpip.io/rss.xml' } },
   title: 'Pip — clean poker',
   description: "Casual Texas Hold'em, redesigned. No fake felt, no neon.",
+  // Safari's own Smart App Banner on iPhone: a row above the page that Safari
+  // draws and the visitor can close, offering Open once the app is installed.
+  // Nothing of ours runs for it, and the store app's web view never shows it.
+  itunes: { appId: APP_STORE_ID },
   appleWebApp: {
     capable: true,
     title: 'pip',

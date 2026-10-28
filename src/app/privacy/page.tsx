@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <Section title="What we store">
         <p>
           Your profile — name, avatar, your Roll, stats, card backs, all of it — lives in your
-          browser’s local storage, on your device. Nothing leaves your device unless you ask it to.
+          browser’s local storage, on your device. It never leaves your device unless you ask it to.
           Clear your browser data and it’s gone; we keep no copy, because we never had one.
         </p>
       </Section>
@@ -163,10 +163,11 @@ export default function PrivacyPage() {
           rare. For the membership we count four steps: someone opened the membership page, someone
           went to pay, someone came back from paying, and a membership started. Paying needs an
           account, so we also count whether they were signed out when they opened it, and whether
-          they tapped to create an account from it. That tells us where people stop, not who they
-          are. No cookies, no fingerprinting, no personal data, and never anything you typed or any
-          message we got back. We can’t tie any of it to a person, including you. It exists so we
-          can improve the game, and for nothing else. It’s never sold or shared.
+          they tapped to create an account from it. We count whether they scrolled down as far as
+          the join button, and whether they pressed join. That tells us where people stop, not who
+          they are. No cookies, no fingerprinting, no personal data, and never anything you typed or
+          any message we got back. We can’t tie any of it to a person, including you. It exists so
+          we can improve the game, and for nothing else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t
