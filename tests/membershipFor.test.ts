@@ -21,6 +21,7 @@ import {
 import {
   ALL_VENUES,
   DEEP_STACK_TABLES,
+  deepStackTwin,
   SIDE_SHELF,
   VENUES,
   familyTableNames,
@@ -281,6 +282,22 @@ test('a table maps to the entry that names it, not just its shelf', (t) => {
   if (custom) t.is(featureForVenue(custom), 'custom-tables')
   for (const family of SIDE_SHELF.filter((f) => f.section === 'games')) {
     for (const room of family.rooms) t.is(featureForVenue(room), family.id, room.id)
+  }
+})
+
+// The Deep Stack tap names each price's ladder twin as the same table with
+// three times the chips, so that has to stay true of the config.
+test('every Deep Stack price is its ladder twin with three times the chips', (t) => {
+  for (const room of DEEP_STACK_TABLES) {
+    const twin = deepStackTwin(room)
+    t.truthy(twin, `${room.id} has no ladder table at ${room.buyIn}`)
+    if (!twin) continue
+    t.is(twin.startingStack, undefined, twin.id)
+    t.is(room.startingStack, room.buyIn * 3, room.id)
+    t.is(room.smallBlind, twin.smallBlind, room.id)
+    t.is(room.bigBlind, twin.bigBlind, room.id)
+    t.deepEqual(room.ai, twin.ai, room.id)
+    t.is(room.handsPerLevel, DEEP_STACK_TABLES[0]?.handsPerLevel, room.id)
   }
 })
 
