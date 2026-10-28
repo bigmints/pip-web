@@ -127,7 +127,10 @@ export default function OmahaHiLoLowPost() {
       <Section title="Where it is">
         <p>
           The Split is one of the side tables in the{' '}
-          <Link href={`${membershipFor('hilo')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('hilo')}&from=blog&post=omaha-hi-lo-how-often-a-low`}
+            className={linkClass}
+          >
             membership
           </Link>
           , at two stakes. A tap on it there deals a showdown where three kings take the high half,
