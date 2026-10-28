@@ -49,6 +49,9 @@
 // A tap on hosting lists the rules a host sets (`TappedMultiplayer`), from the
 // lists the room itself is opened with, and a tap on the table builder lists
 // what a built table lets you pick (`TappedCustomTable`), from the builder's.
+//
+// A tap on Blackjack lists its three houses and their edges (`TappedBlackjack`),
+// from the rules the table is dealt by.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -100,6 +103,10 @@ const TappedCustomTable = dynamic(
   () => import('./TappedCustomTable').then((m) => m.TappedCustomTable),
   { ssr: false },
 )
+
+const TappedBlackjack = dynamic(() => import('./TappedBlackjack').then((m) => m.TappedBlackjack), {
+  ssr: false,
+})
 
 const TappedCoaching = dynamic(() => import('./TappedCoaching').then((m) => m.TappedCoaching), {
   ssr: false,
@@ -154,6 +161,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         {feature.id === 'coaching' && <TappedCoaching />}
         {feature.id === 'multiplayer' && <TappedMultiplayer />}
         {feature.id === 'custom-tables' && <TappedCustomTable />}
+        {feature.id === 'blackjack' && <TappedBlackjack />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a
