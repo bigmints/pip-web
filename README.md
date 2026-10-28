@@ -191,15 +191,16 @@ Each one is about a file in this repo, and links it:
 
 ## Privacy
 
-No account needed, no cookies, no personal data. Your profile lives in your browser.
-Nothing leaves your device unless you ask it to: there's an optional account purely for
+No account needed, no cookies, no personal data. Your profile lives in your browser,
+and it never leaves your device unless you ask it to: there's an optional account purely for
 carrying your progress to another device, it's off unless you turn it on, and it stores
 your email and that same profile and nothing else. With an account you can also ask for two
 emails, a Daily reminder and a weekly summary; both are off until you turn them on, and every
 one has a one-click unsubscribe ([docs/email.md](docs/email.md)).
 
-The only thing Pip records is **anonymous, cookieless usage counts** (via
-[Umami](https://umami.is)) — no fingerprinting, no ad tech, nothing tied to you. The
+The only things Pip records are **anonymous, cookieless usage counts** (via
+[Umami](https://umami.is)) and a running total of hands played, which the game adds to every
+ten hands. No fingerprinting, no ad tech, nothing tied to you. The
 [privacy page](https://playpip.io/privacy) lists exactly what's counted and for how long.
 Because the whole app is open source, you can verify all of this in the code.
 

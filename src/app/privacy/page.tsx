@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <Section title="What we store">
         <p>
           Your profile — name, avatar, your Roll, stats, card backs, all of it — lives in your
-          browser’s local storage, on your device. Nothing leaves your device unless you ask it to.
+          browser’s local storage, on your device. It never leaves your device unless you ask it to.
           Clear your browser data and it’s gone; we keep no copy, because we never had one.
         </p>
       </Section>
