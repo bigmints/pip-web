@@ -32,6 +32,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'membership-viewed': 'someone opened the membership page',
   'membership-viewed-signed-out': 'whether they were signed out when they opened it',
   'membership-signup-tapped': 'whether they tapped to create an account from it',
+  'membership-join-seen': 'whether they scrolled down as far as the join button',
+  'membership-join-tapped': 'whether they pressed join',
   'checkout-opened': 'someone went to pay',
   'checkout-completed': 'someone came back from paying',
   'membership-active': 'a membership started',
