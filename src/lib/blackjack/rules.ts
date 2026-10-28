@@ -8,7 +8,9 @@
 // have to discover is the thing this app exists not to do.
 //
 // **The edge figures were recalculated on 2026-09-20**, when the table dropped
-// to hit and stand only. They are not decoration and they are not the numbers
+// to hit and stand only, and played on 2026-10-26: 40 million hands a table
+// through this engine (`pnpm blackjack-edge`) put Standard at 2.34% and Brutal
+// at 3.94%, under the 2.4% and 4.1% they had said. Friendly played at 1.99%. They are not decoration and they are not the numbers
 // a casino would quote for the same deck count and paytable — removing
 // doubling costs a basic-strategy player about 1.5% and removing splitting
 // about 0.6%, so every table here is roughly two points worse than its
@@ -55,7 +57,7 @@ export const HOUSE_RULES: readonly HouseRules[] = [
     decks: 6,
     hitsSoft17: false,
     blackjackPays: 1.5,
-    edgePercent: 2.4,
+    edgePercent: 2.3,
   },
   {
     id: 'brutal',
@@ -64,7 +66,7 @@ export const HOUSE_RULES: readonly HouseRules[] = [
     decks: 8,
     hitsSoft17: true,
     blackjackPays: 1.2,
-    edgePercent: 4.1,
+    edgePercent: 3.9,
   },
 ]
 
