@@ -56,7 +56,7 @@ export function YourGames({ delay = 0, className }: { delay?: number; className?
             className={cn('relative shrink-0 md:w-auto', games.length === 1 ? 'w-full' : 'w-[86%]')}
           >
             <MiniTable card={g} onOpen={() => open(g.code)} className="w-full" />
-            {g.phase === 'finished' && (
+            {(g.phase === 'finished' || g.phase === 'lobby') && (
               <button
                 type="button"
                 onClick={() => {

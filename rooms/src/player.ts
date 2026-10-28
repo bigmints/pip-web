@@ -119,10 +119,12 @@ export class Player extends DurableObject<Env> {
       case 'POST /card':
         return this.card((await request.json()) as SlowCard)
       case 'POST /dismiss': {
-        const { code } = (await request.json()) as { code?: string }
+        const { code, left } = (await request.json()) as { code?: string; left?: boolean }
         const games = await this.games()
-        // Only a finished game can be swiped away; one still running is not yours to drop.
-        if (code && games[code]?.phase === 'finished') {
+        // A finished game can be swiped away, and one waiting for players once
+        // the room has let them leave it. One being played is not yours to drop.
+        const phase = code ? games[code]?.phase : undefined
+        if (code && (phase === 'finished' || (phase === 'lobby' && left))) {
           delete games[code]
           await this.ctx.storage.put('games', games)
         }

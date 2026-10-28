@@ -6,7 +6,7 @@
 //   GET  /rooms/:code/ws      the table's socket
 //   GET  /queue/:venueId/ws   quick match at a ladder stake
 //   GET  /slow                your slow games, as mini tables (a token)
-//   POST /slow/dismiss        swipe a finished one away
+//   POST /slow/dismiss        swipe a finished one away, or leave one waiting for players
 //   GET  /notify/prefs        Settings → Notifications, and your devices
 //   POST /notify/prefs        save them; a running game's clock follows
 //   POST /notify/devices      allow pushes on this device
@@ -245,7 +245,14 @@ async function mine(
       const body = (await read()) as { code?: unknown } | null
       const code = typeof body?.code === 'string' ? normaliseRoomCode(body.code) : null
       if (!code) return json({ error: 'bad-message' }, 400, cors)
-      return relay(await player(env, userId, 'dismiss', { code }))
+      // A game still waiting for players: leave it first. Its seat goes, and
+      // an empty one closes, which also takes it off their list.
+      const res = await env.ROOMS.get(env.ROOMS.idFromName(code)).fetch('https://room/leave', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      })
+      const { left } = (await res.json()) as { left?: boolean }
+      return relay(await player(env, userId, 'dismiss', { code, left: left === true }))
     }
     case 'GET /notify/prefs':
       return relay(await player(env, userId, 'prefs'))

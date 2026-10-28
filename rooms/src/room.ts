@@ -244,6 +244,24 @@ export class PokerRoom extends DurableObject<Env> {
         200,
       )
     }
+    if (url.pathname === '/leave' && request.method === 'POST') {
+      // The X on a slow game still waiting for players, from Home: stand up
+      // without opening the table. An empty one closes. Once it is dealt the
+      // game is played out, so this does nothing.
+      const body = (await request.json()) as { userId?: string }
+      if (!body.userId) return json({ error: 'bad' }, 400)
+      const room = await this.load()
+      if (!room || room.phase === 'closed') return json({ left: true }, 200)
+      if (room.kind !== 'slow' || room.phase !== 'lobby') return json({ left: false }, 200)
+      const next = leave(room, body.userId, Date.now())
+      await this.save(next)
+      this.broadcast(next)
+      for (const ws of this.ctx.getWebSockets()) {
+        const a = ws.deserializeAttachment() as Attachment
+        if (a.userId === body.userId) ws.close(1000, 'left')
+      }
+      return json({ left: true }, 200)
+    }
     if (url.pathname === '/quiet' && request.method === 'POST') {
       // Settings changed somebody's quiet hours: their turn clock here follows.
       const room = await this.load()
