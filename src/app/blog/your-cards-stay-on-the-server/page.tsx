@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, Section, Src } from '@/components/marketing/LegalPage'
+import { Correction, LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import { membershipFor } from '@/config/membership'
 
@@ -18,6 +18,14 @@ export default function YourCardsStayOnTheServerPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="26 October 2026">
+        <p>
+          Below, this post says hosting needs the membership. Since 25 October anyone with a free
+          Pip account can open one room a day, play one quick match a day and host one slow game at
+          a time. The membership opens as many as you like.
+        </p>
+      </Correction>
+
       <Section title="Two kinds of table">
         <p>
           A single-player game of Pip runs in your browser. The deck is in the tab with you, and so
